@@ -18,7 +18,7 @@ class IsolateSandbox:
                         "--box-id", f"{self.id}",
                         "--cleanup"])
 
-    def run(self, file_name : str):
+    def run_file(self, file_name : str):
         self.create()
         subprocess.run(['cp',
                         file_name,
@@ -31,7 +31,18 @@ class IsolateSandbox:
             pass
         self.cleanup()
 
+    def run_code(self, code :str):
+        self.create()
+        subprocess.run(['touch',
+                        self.path + "/code.py"])
+        subprocess.run(['echo',
+                        code,], stdout=open(self.path + "/code.py", "w"))
+        proc = subprocess.run(["isolate",
+                        "--box-id", f"{self.id}",
+                        "--run", PYTHON_PATH, "code.py"])
+        self.cleanup()
 
 if __name__ == '__main__':
     sandbox = IsolateSandbox(0)
-    sandbox.run("test.py")
+    # sandbox.run_file("test.py")
+    sandbox.run_code('print("Hello World")')
