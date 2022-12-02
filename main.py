@@ -1,6 +1,6 @@
 import subprocess
 
-PYTHON_PATH = "/usr/bin/python3"
+from constants import *
 
 class IsolateSandbox:
     def __init__(self, id) -> None:
