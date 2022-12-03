@@ -8,3 +8,9 @@ class Verdict(Enum):
     CE = 4 # Compilation Error
     SE = 5 # System Error
 
+    def __repr__(self) -> str:
+        return self.name
+    
+    def __str__(self) -> str:
+        return self.name
+
