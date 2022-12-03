@@ -1,6 +1,6 @@
 import subprocess
 from os import path
-import os
+import logging
 
 from .config import *
 from .verdict import Verdict
@@ -13,6 +13,7 @@ class IsolateSandbox:
     def create(self):
         # Initialize sandbox and return path.
         # Find next available box.
+        logging.info('Creating sandbox...')
         for id in range(0, MAX_BOX):
             proc = subprocess.run(['isolate',
                                 '--box-id', f'{id}',
@@ -20,9 +21,11 @@ class IsolateSandbox:
                                     capture_output=True)
             if proc.returncode != 0:
                 # Box already in use.
+                logging.info(f'Box {id} in use. Trying next...')
                 continue
             self.box_path = proc.stdout.decode('utf-8')[:-1] + '/box' # usually /var/local/lib/isolate/{box-id}/box
             self.id = id
+            logging.info(f'Box {id} available. Created box at {self.box_path}')
             return
         raise Exception('All boxes full')
 
@@ -30,6 +33,7 @@ class IsolateSandbox:
         subprocess.run(['isolate',
                         '--box-id', f'{self.id}',
                         '--cleanup'])
+        logging.info(f'Cleaned up box {self.id}.')
 
     # def run_file(self, file_name: str):
     #     box_path = self.create()
@@ -47,6 +51,7 @@ class IsolateSandbox:
     # TODO: Make code a class, representing different languages.
     def run_code(self, code: str, testcases, restrictions):
         # Return `verdict` given code and test cases.
+        logging.info('Begin running code...')
         code_path = path.join(self.box_path, 'code.py')
         
         # Write code to `code.py`.
@@ -103,6 +108,8 @@ class IsolateSandbox:
             result = Result(verdict=verdict, exec_time=metadata['time'])
             results.append(result)
         
+        logging.info('Finished running.')
+        
         final_verdict = None
         # Priority: SE > WA > RE > TLE > AC.
         verdicts = [r.verdict for r in results]
@@ -116,6 +123,6 @@ class IsolateSandbox:
             final_verdict = Verdict.TLE
         else:
             final_verdict = Verdict.AC
-            
+        
         self.cleanup()
         return (final_verdict, results)
