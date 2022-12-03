@@ -1,29 +1,28 @@
 import subprocess
 from os import path
+import os
 
 from .config import *
+from .verdict import *
 
 class IsolateSandbox:
-    def __init__(self) -> None:            
-        for id in range(0, MAX_BOX):
-            try:
-                self.box_path = self.create(id)
-                self.id = id
-                return
-            except Exception:
-                continue
-        raise Exception('All boxes full')
+    def __init__(self) -> None:
+        self.create()     
 
-    # Initialize sandbox and return path.
-    def create(self, id):
-        proc = subprocess.run(['isolate',
-                               '--box-id', f'{id}',
-                               '--init'],
-                                capture_output=True)
-        if len(proc.stderr) > 0:
-            raise Exception
-        output = proc.stdout.decode('utf-8')[:-1]
-        return path.join(output, 'box')
+    def create(self):
+        # Initialize sandbox and return path.
+        for id in range(0, MAX_BOX):
+            proc = subprocess.run(['isolate',
+                                '--box-id', f'{id}',
+                                '--init'],
+                                    capture_output=True)
+            if proc.returncode != 0:
+                continue
+            self.box_path = proc.stdout.decode('utf-8')[:-1] + '/box' # usually /var/local/lib/isolate/{box-id}/box
+            print(self.box_path)
+            self.id = id
+            return
+        raise Exception('All boxes full')
 
     def cleanup(self):
         subprocess.run(['isolate',
@@ -43,39 +42,58 @@ class IsolateSandbox:
     #         pass
     #     self.cleanup()
 
-    # Return `verdict` given code and test cases.
-    def run_code(self, code: str, testcases):
+    # TODO: Make code a class, representing different languages.
+    def run_code(self, code: str, testcases, restrictions):
+        # Return `verdict` given code and test cases.
         code_path = path.join(self.box_path, 'code.py')
-        
-        # Create code file.
         subprocess.run(['touch', code_path])
-        subprocess.run(['echo', code], stdout=open(code_path, 'w'))
-        
-        # Judge.
-        correct = 0
+        subprocess.run(['echo', code,], stdout=open(code_path, "w"))
+        verdicts = []
+        metadata_path = f"metadata_paths/{self.id}.txt"
         for testcase in testcases:
-            # Write input into `/input.txt`.
-            subprocess.run(['echo', testcase['input']], stdout=open(self.box_path + '/input.txt', 'w'))
+            proc = subprocess.run(["isolate",
+                            "--box-id", f"{self.id}",
+                            "-M", metadata_path,
+                            "-t", f"{restrictions['time_limit']}",
+                            "-w", "10",
+                            "-m", f"{restrictions['memory_limit']}",
+                            "--run", PYTHON_PATH, "code.py"],
+                            # input=testcase["input"].encode("utf-8"),
+                            capture_output=True)
+            print(f'stderr: {proc.stderr}')
+            verdict: Verdict = None
+            if proc.returncode != 0:
+                # TLE, MLE, RE, CE, SE.
+                metadata = {}
+                with open(metadata_path, "r") as f:
+                    for line in f.readlines():
+                        key, value = line.split(":", maxsplit=1)
+                        metadata[key] = value.strip()
+                if metadata["status"] == "RE":
+                    verdict = Verdict.RE
+                elif metadata["status"] == "TO":
+                    verdict = Verdict.TLE
+                elif metadata["status"] == "SG" or metadata["status"] == "XX":
+                    verdict = Verdict.SE
+            else:
+                verdict = Verdict.AC
+                for line in proc.stdout.decode("utf-8").splitlines():
+                    if line.rstrip() != testcase["answer"].rstrip():
+                        verdict = Verdict.WA
+                        break
+            verdicts.append(verdict)
+        overall_verdict = None
+        # priority: SE > WA > RE > TLE > AC
+        if Verdict.SE in verdicts:
+            overall_verdict = Verdict.SE
+        elif Verdict.WA in verdicts:
+            overall_verdict = Verdict.WA
+        elif Verdict.RE in verdicts:
+            overall_verdict = Verdict.RE
+        elif Verdict.TLE in verdicts:
+            overall_verdict = Verdict.TLE
+        else:
+            overall_verdict = Verdict.AC
             
-            # Run code, redirect output to `/output.txt`.
-            subprocess.run(['isolate',
-                            '--box-id', f'{self.id}',
-                            '--stdin=input.txt',
-                            '--time', '1',
-                            '--run', PYTHON_PATH, 'code.py'],
-                            stdout=open(self.box_path + '/output.txt', 'w'))
-            
-            # Compare answer and output.
-            with open(self.box_path + '/output.txt', 'r') as output:
-                # TODO: Compare multi-line answers. Maybe separate comparison into another function.
-                if output.readline().strip() == testcase['answer']:
-                    correct += 1
-
         self.cleanup()
-        return str(correct)
-
-
-if __name__ == '__main__':
-    sandbox = IsolateSandbox(0)
-    # sandbox.run_file("test.py")
-    sandbox.run_code('print("Hello World")')
+        return (overall_verdict, verdicts)
