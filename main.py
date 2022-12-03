@@ -3,7 +3,8 @@ from os import path
 import os
 
 from .config import *
-from .verdict import *
+from .verdict import Verdict
+from .result import Result
 
 class IsolateSandbox:
     def __init__(self) -> None:
@@ -52,7 +53,7 @@ class IsolateSandbox:
         subprocess.run(['touch', code_path])
         subprocess.run(['echo', code,], stdout=open(code_path, 'w'))
         
-        verdicts = []
+        results = []
         metadata_path = f'metadata_paths/{self.id}.txt'
         for testcase in testcases:
             # Run code.
@@ -68,13 +69,13 @@ class IsolateSandbox:
             
             # Judge.
             verdict: Verdict = None
+            metadata = {}
+            with open(metadata_path, 'r') as f:
+                for line in f.readlines():
+                    key, value = line.split(':', maxsplit=1)
+                    metadata[key] = value.strip()
             if proc.returncode != 0:
                 # TLE, MLE, RE, CE, SE.
-                metadata = {}
-                with open(metadata_path, 'r') as f:
-                    for line in f.readlines():
-                        key, value = line.split(':', maxsplit=1)
-                        metadata[key] = value.strip()
                 if metadata['status'] == 'RE':
                     verdict = Verdict.RE
                 elif metadata['status'] == 'TO':
@@ -88,10 +89,12 @@ class IsolateSandbox:
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
                         break
-            verdicts.append(verdict)
+            result = Result(verdict=verdict, exec_time=metadata['time'])
+            results.append(result)
         
         overall_verdict = None
         # Priority: SE > WA > RE > TLE > AC.
+        verdicts = [r.verdict for r in results]
         if Verdict.SE in verdicts:
             overall_verdict = Verdict.SE
         elif Verdict.WA in verdicts:
@@ -104,4 +107,4 @@ class IsolateSandbox:
             overall_verdict = Verdict.AC
             
         self.cleanup()
-        return (overall_verdict, verdicts)
+        return (overall_verdict, results)

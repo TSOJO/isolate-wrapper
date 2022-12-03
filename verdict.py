@@ -12,5 +12,4 @@ class Verdict(Enum):
         return self.name
     
     def __str__(self) -> str:
-        return self.name
-
+        return self.__repr__()
