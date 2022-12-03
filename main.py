@@ -61,7 +61,6 @@ class IsolateSandbox:
             subprocess.run(['isolate',
                             '--box-id', f'{self.id}',
                             '--stdin=input.txt',
-                            '--time', '1',
                             '--run', PYTHON_PATH, 'code.py'],
                             stdout=open(self.box_path + '/output.txt', 'w'))
             
