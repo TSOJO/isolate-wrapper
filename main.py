@@ -35,11 +35,11 @@ class IsolateSandbox:
     #     subprocess.run(['cp',
     #                     file_name,
     #                     box_path])
-    #     if file_name.endswith(".py"):
-    #         subprocess.run(["isolate",
-    #                         "--box-id", f"{self.id}",
-    #                         "--run", PYTHON_PATH, file_name])
-    #     elif file_name.endswith(".cpp"):
+    #     if file_name.endswith('.py'):
+    #         subprocess.run(['isolate',
+    #                         '--box-id', f'{self.id}',
+    #                         '--run', PYTHON_PATH, file_name])
+    #     elif file_name.endswith('.cpp'):
     #         pass
     #     self.cleanup()
 
@@ -54,8 +54,10 @@ class IsolateSandbox:
         
         verdicts = []
         metadata_path = f'metadata_paths/{self.id}.txt'
+        # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
+        # if compilation fails
+        #   return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
         for testcase in testcases:
-            # Run code.
             proc = subprocess.run(['isolate',
                             '--box-id', f'{self.id}',
                             '-M', metadata_path,
@@ -69,7 +71,7 @@ class IsolateSandbox:
             # Judge.
             verdict: Verdict = None
             if proc.returncode != 0:
-                # TLE, MLE, RE, CE, SE.
+                # TLE, MLE, RE, SE.
                 metadata = {}
                 with open(metadata_path, 'r') as f:
                     for line in f.readlines():
@@ -84,24 +86,34 @@ class IsolateSandbox:
             else:
                 # AC, WA.
                 verdict = Verdict.AC
+                output_lines = proc.stdout.decode('utf-8').splitlines()
+                answer_lines = testcase['answer'].splitlines()
+                if len(output_lines) != len(answer_lines):
+                    verdict = Verdict.WA
+                else:
+                    for output_line, answer_line in zip(output_lines, answer_lines):
+                        if output_line.rstrip() != answer_line.rstrip():
+                            verdict = Verdict.WA
+                            break
                 for line in proc.stdout.decode('utf-8').splitlines():
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
                         break
             verdicts.append(verdict)
-        
-        overall_verdict = None
-        # Priority: SE > WA > RE > TLE > AC.
+
+        # Determine final verdict.
+        final_verdict = None
+        # priority: SE > WA > RE > TLE > AC.
         if Verdict.SE in verdicts:
-            overall_verdict = Verdict.SE
+            final_verdict = Verdict.SE
         elif Verdict.WA in verdicts:
-            overall_verdict = Verdict.WA
+            final_verdict = Verdict.WA
         elif Verdict.RE in verdicts:
-            overall_verdict = Verdict.RE
+            final_verdict = Verdict.RE
         elif Verdict.TLE in verdicts:
-            overall_verdict = Verdict.TLE
+            final_verdict = Verdict.TLE
         else:
-            overall_verdict = Verdict.AC
+            final_verdict = Verdict.AC
             
         self.cleanup()
-        return (overall_verdict, verdicts)
+        return (final_verdict, verdicts)
