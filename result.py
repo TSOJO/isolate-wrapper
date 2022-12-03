@@ -5,7 +5,7 @@ from .verdict import Verdict
 class Result:
     verdict: Verdict
     exec_time: float
-    # mem: float
+    mem: float
     
     def __repr__(self) -> str:
         return f'(Verdict: {self.verdict}; time: {self.exec_time})'

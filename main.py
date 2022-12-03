@@ -68,7 +68,7 @@ class IsolateSandbox:
                             '--box-id', f'{self.id}',
                             '-M', metadata_path,
                             '-t', f"{restrictions['time_limit']}",
-                            '-w', '10',
+                            '-w', f"{restrictions['time_limit'] + 1}",
                             '-m', f"{restrictions['memory_limit']}",
                             '--run', PYTHON_PATH, 'code.py'],
                             input=testcase['input'].encode('utf-8'),
@@ -81,13 +81,14 @@ class IsolateSandbox:
                 for line in f.readlines():
                     key, value = line.split(':', maxsplit=1)
                     metadata[key] = value.strip()
+                    
             if proc.returncode != 0:
                 # TLE, MLE, RE, CE, SE.
-                if metadata['status'] == 'RE':
+                if metadata['status'] == 'RE' or metadata['status'] == 'SG':
                     verdict = Verdict.RE
                 elif metadata['status'] == 'TO':
                     verdict = Verdict.TLE
-                elif metadata['status'] == 'SG' or metadata['status'] == 'XX':
+                elif metadata['status'] == 'XX':
                     verdict = Verdict.SE
             else:
                 # AC, WA.
@@ -105,7 +106,7 @@ class IsolateSandbox:
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
                         break
-            result = Result(verdict=verdict, exec_time=metadata['time'])
+            result = Result(verdict=verdict, exec_time=metadata['time'], mem=metadata['max-rss'])
             results.append(result)
         
         logging.info('Finished running.')
