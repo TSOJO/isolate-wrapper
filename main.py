@@ -32,17 +32,27 @@ class IsolateSandbox:
         self.cleanup()
 
     # Return `verdict` given code and test cases.
-    def run_code(self, code: str):
+    def run_code(self, code: str, testcases):
         path = self.create()
         subprocess.run(['touch',
                         path + "/code.py"])
         subprocess.run(['echo',
                         code,], stdout=open(path + "/code.py", "w"))
-        proc = subprocess.run(["isolate",
-                        "--box-id", f"{self.id}",
-                        "--run", PYTHON_PATH, "code.py"])
-        
+        correct = 0
+        for testcase in testcases:
+            subprocess.run([
+                'echo', f'{testcase["input"]}'
+            ], stdout=open(path + "/input.txt", "w"))
+            proc = subprocess.run(["isolate",
+                            "--box-id", f"{self.id}", "--stdin=input.txt",
+                            "--run", PYTHON_PATH, "code.py"], stdout=open(path + '/output.txt', 'w'))
+            with open(path + '/output.txt', 'r') as output:
+                # TODO: Compare multi-line answers.
+                if output.readline().strip() == testcase['answer']:
+                    correct += 1
+
         self.cleanup()
+        return str(correct)
 
 if __name__ == '__main__':
     sandbox = IsolateSandbox(0)
