@@ -19,7 +19,6 @@ class IsolateSandbox:
             if proc.returncode != 0:
                 continue
             self.box_path = proc.stdout.decode('utf-8')[:-1] + '/box' # usually /var/local/lib/isolate/{box-id}/box
-            print(self.box_path)
             self.id = id
             return
         raise Exception('All boxes full')
@@ -60,7 +59,6 @@ class IsolateSandbox:
                             "--run", PYTHON_PATH, "code.py"],
                             # input=testcase["input"].encode("utf-8"),
                             capture_output=True)
-            print(f'stderr: {proc.stderr}')
             verdict: Verdict = None
             if proc.returncode != 0:
                 # TLE, MLE, RE, CE, SE.
