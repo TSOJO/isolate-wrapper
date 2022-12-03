@@ -11,10 +11,8 @@ Install [isolate](https://github.com/ioi/isolate):
 - If you see an error saying a2x is required, you can ignore it, as it is only for the docs
 Install python, then update the PYTHON_PATH in constants.py
 
-## TODO
-Fetch test cases <br>
-Multi processing <br>
-verdicts
-
-
-
+## Todo
+- [x] Fetch test cases
+- [ ] Verdicts
+- [ ] Time limit
+- [ ] Multiprocessing
