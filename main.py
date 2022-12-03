@@ -36,11 +36,11 @@ class IsolateSandbox:
     #     subprocess.run(['cp',
     #                     file_name,
     #                     box_path])
-    #     if file_name.endswith(".py"):
-    #         subprocess.run(["isolate",
-    #                         "--box-id", f"{self.id}",
-    #                         "--run", PYTHON_PATH, file_name])
-    #     elif file_name.endswith(".cpp"):
+    #     if file_name.endswith('.py'):
+    #         subprocess.run(['isolate',
+    #                         '--box-id', f'{self.id}',
+    #                         '--run', PYTHON_PATH, file_name])
+    #     elif file_name.endswith('.cpp'):
     #         pass
     #     self.cleanup()
 
@@ -54,9 +54,11 @@ class IsolateSandbox:
         subprocess.run(['echo', code,], stdout=open(code_path, 'w'))
         
         results = []
-        metadata_path = f'metadata_paths/{self.id}.txt'
+        metadata_path = f'metadata/{self.id}.txt'
+        # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
+        # if compilation fails
+        #   return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
         for testcase in testcases:
-            # Run code.
             proc = subprocess.run(['isolate',
                             '--box-id', f'{self.id}',
                             '-M', metadata_path,
@@ -85,6 +87,15 @@ class IsolateSandbox:
             else:
                 # AC, WA.
                 verdict = Verdict.AC
+                output_lines = proc.stdout.decode('utf-8').splitlines()
+                answer_lines = testcase['answer'].splitlines()
+                if len(output_lines) != len(answer_lines):
+                    verdict = Verdict.WA
+                else:
+                    for output_line, answer_line in zip(output_lines, answer_lines):
+                        if output_line.rstrip() != answer_line.rstrip():
+                            verdict = Verdict.WA
+                            break
                 for line in proc.stdout.decode('utf-8').splitlines():
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
@@ -92,19 +103,19 @@ class IsolateSandbox:
             result = Result(verdict=verdict, exec_time=metadata['time'])
             results.append(result)
         
-        overall_verdict = None
+        final_verdict = None
         # Priority: SE > WA > RE > TLE > AC.
         verdicts = [r.verdict for r in results]
         if Verdict.SE in verdicts:
-            overall_verdict = Verdict.SE
+            final_verdict = Verdict.SE
         elif Verdict.WA in verdicts:
-            overall_verdict = Verdict.WA
+            final_verdict = Verdict.WA
         elif Verdict.RE in verdicts:
-            overall_verdict = Verdict.RE
+            final_verdict = Verdict.RE
         elif Verdict.TLE in verdicts:
-            overall_verdict = Verdict.TLE
+            final_verdict = Verdict.TLE
         else:
-            overall_verdict = Verdict.AC
+            final_verdict = Verdict.AC
             
         self.cleanup()
-        return (overall_verdict, results)
+        return (final_verdict, results)
