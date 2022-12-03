@@ -57,7 +57,7 @@ class IsolateSandbox:
                             "-w", "10",
                             "-m", f"{restrictions['memory_limit']}",
                             "--run", PYTHON_PATH, "code.py"],
-                            # input=testcase["input"].encode("utf-8"),
+                            input=testcase["input"].encode("utf-8"),
                             capture_output=True)
             verdict: Verdict = None
             if proc.returncode != 0:
