@@ -6,10 +6,8 @@ from .config import *
 class IsolateSandbox:
     def __init__(self) -> None:            
         for id in range(0, MAX_BOX):
-            print('***********************', id)
             try:
                 self.box_path = self.create(id)
-                print('***********************', self.box_path)
                 self.id = id
                 return
             except Exception:
@@ -25,7 +23,6 @@ class IsolateSandbox:
         if len(proc.stderr) > 0:
             raise Exception
         output = proc.stdout.decode('utf-8')[:-1]
-        print('***************', output)
         return path.join(output, 'box')
 
     def cleanup(self):
