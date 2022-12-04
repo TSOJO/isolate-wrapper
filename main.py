@@ -59,7 +59,7 @@ class IsolateSandbox:
         subprocess.run(['echo', code,], stdout=open(code_path, 'w'))
         
         results = []
-        metadata_path = f'metadata/{self.id}.txt'
+        metadata_path = path.join(METADATA_FOLDER, f'{self.id}.txt')
         # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
         # if compilation fails
         #   return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
