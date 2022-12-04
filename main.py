@@ -102,12 +102,6 @@ class IsolateSandbox:
                         if output_line.rstrip() != answer_line.rstrip():
                             verdict = Verdict.WA
                             break
-                for line in output.splitlines():
-                    # ! Is this meant to be deleted?
-                    # ! Does it work with multi-line answer?
-                    if line.rstrip() != testcase['answer'].rstrip():
-                        verdict = Verdict.WA
-                        break
                     
             result = Result(verdict=verdict,
                             time=round(float(metadata['time']), 3),
