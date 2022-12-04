@@ -5,10 +5,10 @@ from .verdict import Verdict
 class Result:
     verdict: Verdict
     time: float
-    mem: float
+    memory: float
     
     def __repr__(self) -> str:
-        return f'(Verdict: {self.verdict}; time: {self.time}); mem: {self.mem}'
+        return f'(Verdict: {self.verdict}; time: {self.time}); memory: {self.memory}'
     
     def __str__(self) -> str:
         return self.__repr__()

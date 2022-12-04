@@ -106,7 +106,7 @@ class IsolateSandbox:
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
                         break
-            result = Result(verdict=verdict, time=metadata['time'], mem=metadata['max-rss'])
+            result = Result(verdict=verdict, time=metadata['time'], memory=metadata['max-rss'])
             results.append(result)
         
         logging.info('Finished running.')
