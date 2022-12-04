@@ -73,9 +73,10 @@ class IsolateSandbox:
                             '--run', PYTHON_PATH, 'code.py'],
                             input=testcase['input'].encode('utf-8'),
                             capture_output=True)
+            output = proc.stdout.decode('utf-8')
             
             # Judge.
-            verdict: Verdict = None
+            verdict = Verdict.AC
             metadata = {}
             with open(metadata_path, 'r') as f:
                 for line in f.readlines():
@@ -91,9 +92,8 @@ class IsolateSandbox:
                 elif metadata['status'] == 'XX':
                     verdict = Verdict.SE
             else:
-                # AC, WA.
-                verdict = Verdict.AC
-                output_lines = proc.stdout.decode('utf-8').splitlines()
+                # WA.
+                output_lines = output.splitlines()
                 answer_lines = testcase['answer'].splitlines()
                 if len(output_lines) != len(answer_lines):
                     verdict = Verdict.WA
@@ -102,7 +102,9 @@ class IsolateSandbox:
                         if output_line.rstrip() != answer_line.rstrip():
                             verdict = Verdict.WA
                             break
-                for line in proc.stdout.decode('utf-8').splitlines():
+                for line in output.splitlines():
+                    # ! Is this meant to be deleted?
+                    # ! Does it work with multi-line answer?
                     if line.rstrip() != testcase['answer'].rstrip():
                         verdict = Verdict.WA
                         break
