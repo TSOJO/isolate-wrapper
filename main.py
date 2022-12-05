@@ -1,10 +1,12 @@
 import subprocess
 from os import path
 import logging
+from typing import *
 
 from .config import *
 from .verdict import Verdict
 from .result import Result
+from .testcase import Testcase
 
 class IsolateSandbox:
     def __init__(self) -> None:
@@ -49,7 +51,7 @@ class IsolateSandbox:
     #     self.cleanup()
 
     # TODO: Make code a class, representing different languages.
-    def run_code(self, code: str, testcases, restrictions):
+    def run_code(self, code: str, testcases : List[Testcase], restrictions):
         # Return `verdict` given code and test cases.
         logging.info('Begin running code...')
         code_path = path.join(self.box_path, 'code.py')
@@ -71,7 +73,7 @@ class IsolateSandbox:
                             '-w', f"{restrictions['time_limit'] + 1}",
                             '-m', f"{restrictions['memory_limit']}",
                             '--run', PYTHON_PATH, 'code.py'],
-                            input=testcase['input'].encode('utf-8'),
+                            input=testcase.input.encode('utf-8'),
                             capture_output=True)
             output = proc.stdout.decode('utf-8')
             
@@ -94,7 +96,7 @@ class IsolateSandbox:
             else:
                 # WA.
                 output_lines = output.splitlines()
-                answer_lines = testcase['answer'].splitlines()
+                answer_lines = testcase.answer.splitlines()
                 if len(output_lines) != len(answer_lines):
                     verdict = Verdict.WA
                 else:
