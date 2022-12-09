@@ -26,7 +26,7 @@ class IsolateSandbox:
     def ensure_isolate_installed(self) -> None:
         """Ensures isolate is installed.
         """
-        proc = subprocess.run(['isolate', '--version'], capture_output=True, check=False)
+        proc = subprocess.run(['isolate', '--version'], capture_output=True)
         if proc.returncode != 0:
             raise Exception('Isolate is not installed.')
 
@@ -45,8 +45,7 @@ class IsolateSandbox:
             proc = subprocess.run(['isolate',
                                    '--box-id', f'{id_}',
                                    '--init'],
-                                  capture_output=True,
-                                  check=False)
+                                  capture_output=True)
             if proc.returncode != 0:
                 # Box already in use.
                 logging.info('Box %d in use. Trying next...', id_)
@@ -72,8 +71,7 @@ class IsolateSandbox:
         """
         subprocess.run(['isolate',
                         '--box-id', f'{self.box_id}',
-                        '--cleanup'],
-                       check=False)
+                        '--cleanup'])
         logging.info('Cleaned up box %d.', self.box_id)
 
     # TODO: Make code a class, representing different languages.
@@ -93,7 +91,7 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            Tuple[Verdict, List[Result]]: Tuple of final verdict and results.
+            tuple[Verdict, List[Result]]: Tuple of final verdict and results.
 
         """
         logging.info('Begin running code...')
@@ -101,12 +99,11 @@ class IsolateSandbox:
         metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         # Write code to `code.py`.
-        subprocess.run(['touch', code_path], check=False)
+        subprocess.run(['touch', code_path])
         subprocess.run(['echo', code],
-                       stdout=open(code_path, 'w', encoding='utf-8'),
-                       check=False)
+                       stdout=open(code_path, 'w', encoding='utf-8'))
 
-        results = []
+        results: List[Result] = []
 
         # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
         # if compilation fails
@@ -120,22 +117,24 @@ class IsolateSandbox:
                                    '-m', f'{memory_limit}',
                                    '--run', PYTHON_PATH, 'code.py'],
                                   input=testcase.input_.encode('utf-8'),
-                                  capture_output=True,
-                                  check=False)
+                                  capture_output=True)
             output = proc.stdout.decode('utf-8')
 
             metadata = self.read_metadata(metadata_path)
 
             if proc.returncode != 0:
-                # TLE, MLE, RE, CE, SE.
+                # TLE, RE, CE, SE.
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
+                    if 'max-rss' in metadata:
+                        if float(metadata['max-rss']) > memory_limit * .8:
+                            verdict = Verdict.MLE
                 elif metadata['status'] == 'TO':
                     verdict = Verdict.TLE
                 elif metadata['status'] == 'XX':
                     verdict = Verdict.SE
             else:
-                # WA.
+                # WA, AC.
                 if not self.check_output(output, testcase.answer):
                     verdict = Verdict.WA
                 else:
@@ -160,7 +159,7 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
-    ) -> List[Testcase]:
+    ) -> None:
         """Runs code, then set the answer of each testcase to the output.
 
         Args:
@@ -170,7 +169,7 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            List[Testcase]: List of updated testcase objects.
+            Verdict: Returns Verdict.AC if the code ran faithfully, other verdicts have their usual meanings.
 
         """
         logging.info('Begin running code...')
@@ -178,10 +177,9 @@ class IsolateSandbox:
         metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         # Write code to `code.py`.
-        subprocess.run(['touch', code_path], check=False)
+        subprocess.run(['touch', code_path])
         subprocess.run(['echo', code],
-                       stdout=open(code_path, 'w', encoding='utf-8'),
-                       check=False)
+                       stdout=open(code_path, 'w', encoding='utf-8'))
 
         verdicts = []
 
@@ -197,8 +195,7 @@ class IsolateSandbox:
                                    '-m', f'{memory_limit}',
                                    '--run', PYTHON_PATH, 'code.py'],
                                   input=testcase.input_.encode('utf-8'),
-                                  capture_output=True,
-                                  check=False)
+                                  capture_output=True)
             output = proc.stdout.decode('utf-8')
 
             metadata = self.read_metadata(metadata_path)
@@ -220,7 +217,7 @@ class IsolateSandbox:
 
         logging.info('Finished running.')
         self.cleanup()
-        return testcases
+        return self.decide_final_verdict(verdicts)
 
     def read_metadata(self, metadata_path: str) -> Dict[str, str]:
         """Reads metadata file and return dictionary of metadata.
@@ -279,4 +276,6 @@ class IsolateSandbox:
             return Verdict.RE
         if Verdict.TLE in verdicts:
             return Verdict.TLE
+        if Verdict.MLE in verdicts:
+            return Verdict.MLE
         return Verdict.AC
