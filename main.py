@@ -93,7 +93,7 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            tuple[Verdict, List[Result]]: Tuple of final verdict and results.
+            Tuple[Verdict, List[Result]]: (Final verdicts, results)
 
         """
         results = []
