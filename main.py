@@ -1,7 +1,7 @@
 import subprocess
 import logging
 from os import path
-from typing import List
+from typing import List, Tuple
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
 from .custom_types import Verdict, Result, Testcase
@@ -81,7 +81,7 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
-    ) -> tuple[Verdict, List[Result]]:
+    ) -> Tuple[Verdict, List[Result]]:
         """Judges code and returns verdict.
 
         Args:
