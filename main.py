@@ -26,8 +26,9 @@ class IsolateSandbox:
     def ensure_isolate_installed(self) -> None:
         """Ensures isolate is installed.
         """
-        proc = subprocess.run(['isolate', '--version'], capture_output=True, check=False)
-        if proc.returncode != 0:
+        try:
+            proc = subprocess.run(['isolate', '--version'], capture_output=True, check=True)
+        except:
             raise Exception('Isolate is not installed.')
 
     def create(self):
@@ -93,10 +94,10 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            Tuple[Verdict, List[Result]]: (Final verdicts, results)
+            tuple[Verdict, List[Result]]: Tuple of final verdict and results.
 
         """
-        results = []
+        results: List[Result] = []
 
         for (output, metadata, return_code, testcase) \
             in self.run_code(code, testcases, time_limit, memory_limit):
@@ -113,6 +114,7 @@ class IsolateSandbox:
                 elif metadata['status'] == 'XX':
                     verdict = Verdict.SE
                 else:
+                    # This following code should be unreachable.
                     raise Exception('Unexpected metadata status.')
             else:
                 # WA, AC.
@@ -168,7 +170,6 @@ class IsolateSandbox:
                     verdict = Verdict.SE
                 else:
                     raise Exception('Unexpected metadata status.')
-
             else:
                 # Faithfully executed code.
                 testcase.answer = output
@@ -176,7 +177,7 @@ class IsolateSandbox:
 
             verdicts.append(verdict)
 
-        logging.info('Finished running.')
+        logging.info('Finished generating output.')
         self.cleanup()
         return (self.decide_final_verdict(verdicts), testcases)
 
