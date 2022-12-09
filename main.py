@@ -26,7 +26,7 @@ class IsolateSandbox:
     def ensure_isolate_installed(self) -> None:
         """Ensures isolate is installed.
         """
-        proc = subprocess.run(['isolate', '--version'])
+        proc = subprocess.run(['isolate', '--version'], capture_output=True)
         if proc.returncode != 0:
             raise Exception('Isolate is not installed.')
 
@@ -208,7 +208,7 @@ class IsolateSandbox:
             else:
                 # Faithfully executed code.
                 testcase.answer = output
-                verdict = verdict.AC
+                verdict = Verdict.AC
 
             verdicts.append(verdict)
 
