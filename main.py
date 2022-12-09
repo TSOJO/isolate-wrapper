@@ -26,7 +26,7 @@ class IsolateSandbox:
     def ensure_isolate_installed(self) -> None:
         """Ensures isolate is installed.
         """
-        proc = subprocess.run(['isolate', '--version'], capture_output=True)
+        proc = subprocess.run(['isolate', '--version'], capture_output=True, check=False)
         if proc.returncode != 0:
             raise Exception('Isolate is not installed.')
 
@@ -45,7 +45,8 @@ class IsolateSandbox:
             proc = subprocess.run(['isolate',
                                    '--box-id', f'{id_}',
                                    '--init'],
-                                  capture_output=True)
+                                  capture_output=True,
+                                  check=False)
             if proc.returncode != 0:
                 # Box already in use.
                 logging.info('Box %d in use. Trying next...', id_)
@@ -71,7 +72,8 @@ class IsolateSandbox:
         """
         subprocess.run(['isolate',
                         '--box-id', f'{self.box_id}',
-                        '--cleanup'])
+                        '--cleanup'],
+                       check=False)
         logging.info('Cleaned up box %d.', self.box_id)
 
     # TODO: Make code a class, representing different languages.
@@ -91,7 +93,7 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            tuple[Verdict, List[Result]]: Tuple of final verdict and results.
+            Tuple[Verdict, List[Result]]: Tuple of final verdict and results.
 
         """
         logging.info('Begin running code...')
@@ -99,9 +101,10 @@ class IsolateSandbox:
         metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         # Write code to `code.py`.
-        subprocess.run(['touch', code_path])
+        subprocess.run(['touch', code_path], check=False)
         subprocess.run(['echo', code],
-                       stdout=open(code_path, 'w', encoding='utf-8'))
+                       stdout=open(code_path, 'w', encoding='utf-8'),
+                       check=False)
 
         results = []
 
@@ -117,7 +120,8 @@ class IsolateSandbox:
                                    '-m', f'{memory_limit}',
                                    '--run', PYTHON_PATH, 'code.py'],
                                   input=testcase.input_.encode('utf-8'),
-                                  capture_output=True)
+                                  capture_output=True,
+                                  check=False)
             output = proc.stdout.decode('utf-8')
 
             metadata = self.read_metadata(metadata_path)
@@ -156,7 +160,7 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
-    ) -> None:
+    ) -> List[Testcase]:
         """Runs code, then set the answer of each testcase to the output.
 
         Args:
@@ -166,7 +170,7 @@ class IsolateSandbox:
             memory_limit (int): Memory limit in KB.
 
         Returns:
-            Verdict: Returns Verdict.AC if the code ran faithfully, other verdicts have their usual meanings.
+            List[Testcase]: List of updated testcase objects.
 
         """
         logging.info('Begin running code...')
@@ -174,9 +178,10 @@ class IsolateSandbox:
         metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         # Write code to `code.py`.
-        subprocess.run(['touch', code_path])
+        subprocess.run(['touch', code_path], check=False)
         subprocess.run(['echo', code],
-                       stdout=open(code_path, 'w', encoding='utf-8'))
+                       stdout=open(code_path, 'w', encoding='utf-8'),
+                       check=False)
 
         verdicts = []
 
@@ -192,7 +197,8 @@ class IsolateSandbox:
                                    '-m', f'{memory_limit}',
                                    '--run', PYTHON_PATH, 'code.py'],
                                   input=testcase.input_.encode('utf-8'),
-                                  capture_output=True)
+                                  capture_output=True,
+                                  check=False)
             output = proc.stdout.decode('utf-8')
 
             metadata = self.read_metadata(metadata_path)
@@ -214,7 +220,7 @@ class IsolateSandbox:
 
         logging.info('Finished running.')
         self.cleanup()
-        return self.decide_final_verdict(verdicts)
+        return testcases
 
     def read_metadata(self, metadata_path: str) -> Dict[str, str]:
         """Reads metadata file and return dictionary of metadata.
