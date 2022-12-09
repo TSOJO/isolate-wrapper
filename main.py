@@ -1,7 +1,7 @@
 import subprocess
 import logging
 from os import path
-from typing import List, Tuple
+from typing import List, Tuple, Dict
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
 from .custom_types import Verdict, Result, Testcase
@@ -216,7 +216,7 @@ class IsolateSandbox:
         self.cleanup()
         return self.decide_final_verdict(verdicts)
 
-    def read_metadata(self, metadata_path: str) -> dict[str, str]:
+    def read_metadata(self, metadata_path: str) -> Dict[str, str]:
         """Reads metadata file and return dictionary of metadata.
 
         Args:
