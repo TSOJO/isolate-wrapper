@@ -3,8 +3,9 @@ import logging
 from os import path
 from typing import List
 
-from isolate_wrapper.config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
-from isolate_wrapper.types import Verdict, Result, Testcase
+from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
+from .custom_types import Verdict, Result, Testcase
+
 
 class IsolateSandbox:
     """Sandbox for running code.
@@ -19,7 +20,15 @@ class IsolateSandbox:
     def __init__(self) -> None:
         """Try to initialise by assigning to an available box.
         """
+        self.ensure_isolate_installed()
         self.create()
+
+    def ensure_isolate_installed(self) -> None:
+        """Ensures isolate is installed.
+        """
+        proc = subprocess.run(['isolate', '--version'])
+        if proc.returncode != 0:
+            raise Exception('Isolate is not installed.')
 
     def create(self):
         """Try assign to an available box.
@@ -46,7 +55,8 @@ class IsolateSandbox:
             self.box_path = proc.stdout.decode('utf-8')[:-1] + '/box'
             self.box_id = id_
 
-            logging.info('Box %d available. Created box at %s', self.box_id, self.box_path)
+            logging.info('Box %d available. Created box at %s',
+                         self.box_id, self.box_path)
             return
 
         raise Exception('All boxes full')
@@ -65,15 +75,14 @@ class IsolateSandbox:
         logging.info('Cleaned up box %d.', self.box_id)
 
     # TODO: Make code a class, representing different languages.
-    # TODO: Make `restrictions` a class?
-    def run_code(
+    def judge(
         self,
         code: str,
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
     ) -> tuple[Verdict, List[Result]]:
-        """Runs code and returns verdict.
+        """Judges code and returns verdict.
 
         Args:
             code (str): Source code.
@@ -123,7 +132,7 @@ class IsolateSandbox:
                     verdict = Verdict.SE
             else:
                 # WA.
-                if not self.judge_output(output, testcase.answer):
+                if not self.check_output(output, testcase.answer):
                     verdict = Verdict.WA
                 else:
                     verdict = Verdict.AC
@@ -140,6 +149,72 @@ class IsolateSandbox:
 
         self.cleanup()
         return (final_verdict, results)
+
+    def generate_answer(
+        self,
+        code: str,
+        testcases: List[Testcase],
+        time_limit: int,
+        memory_limit: int,
+    ) -> None:
+        """Runs code, then set the answer of each testcase to the output.
+
+        Args:
+            code (str): Source code.
+            testcases (List[Testcase]): Testcase objects.
+            time_limit (int): Time limit in seconds.
+            memory_limit (int): Memory limit in KB.
+
+        Returns:
+            Verdict: Returns Verdict.AC if the code ran faithfully, other verdicts have their usual meanings.
+
+        """
+        logging.info('Begin running code...')
+        code_path = path.join(self.box_path, 'code.py')
+        metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
+
+        # Write code to `code.py`.
+        subprocess.run(['touch', code_path])
+        subprocess.run(['echo', code],
+                       stdout=open(code_path, 'w', encoding='utf-8'))
+
+        verdicts = []
+
+        # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
+        # if compilation fails
+        # return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
+        for testcase in testcases:
+            proc = subprocess.run(['isolate',
+                                   '--box-id', f'{self.box_id}',
+                                   '-M', metadata_path,
+                                   '-t', f'{time_limit}',
+                                   '-w', f'{time_limit+1}',
+                                   '-m', f'{memory_limit}',
+                                   '--run', PYTHON_PATH, 'code.py'],
+                                  input=testcase.input_.encode('utf-8'),
+                                  capture_output=True)
+            output = proc.stdout.decode('utf-8')
+
+            metadata = self.read_metadata(metadata_path)
+
+            if proc.returncode != 0:
+                # TLE, RE, SE.
+                if metadata['status'] in ('RE', 'SG'):
+                    verdict = Verdict.RE
+                elif metadata['status'] == 'TO':
+                    verdict = Verdict.TLE
+                elif metadata['status'] == 'XX':
+                    verdict = Verdict.SE
+            else:
+                # Faithfully executed code.
+                testcase.answer = output
+                verdict = verdict.AC
+
+            verdicts.append(verdict)
+
+        logging.info('Finished running.')
+        self.cleanup()
+        return self.decide_final_verdict(verdicts)
 
     def read_metadata(self, metadata_path: str) -> dict[str, str]:
         """Reads metadata file and return dictionary of metadata.
@@ -159,7 +234,7 @@ class IsolateSandbox:
 
         return metadata
 
-    def judge_output(self, output: str, answer: str) -> bool:
+    def check_output(self, output: str, answer: str) -> bool:
         """Compare `output` and `answer`, and return whether `output` is correct.
 
         Args:
