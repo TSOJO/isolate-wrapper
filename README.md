@@ -9,10 +9,4 @@ Install [isolate](https://github.com/ioi/isolate):
 - `sudo make`
 - `sudo make install`
 - If you see an error saying a2x is required, you can ignore it, as it is only for the docs
-Install python, then update the PYTHON_PATH in constants.py
-
-## Todo
-- [x] Fetch test cases
-- [ ] Verdicts
-- [ ] Time limit
-- [ ] Multiprocessing
+Install python, then update the PYTHON_PATH in config.py
