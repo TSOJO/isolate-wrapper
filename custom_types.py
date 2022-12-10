@@ -16,7 +16,7 @@ class Testcase:
 class Verdict(Enum):
     """Verdict type.
 
-    Will be one of AC/WA/TLE/RE/CE/SE
+    Will be one of AC/WA/TLE/MLE/RE/CE/SE
 
     """
     AC = 'Accepted'
