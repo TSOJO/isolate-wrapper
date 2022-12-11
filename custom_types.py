@@ -47,8 +47,8 @@ class Result:
 
     Attributes:
         verdict (Verdict): Verdict of result.
-        time (float): Execution time in seconds.
-        memory (float): Memory used in MB.
+        time (int): Execution time in milliseconds.
+        memory (int): Memory used in KB.
 
     """
     verdict: Verdict

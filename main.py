@@ -82,15 +82,15 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: float,
-        memory_limit: float,
+        time_limit: int,
+        memory_limit: int,
     ) -> Tuple[Verdict, List[Result]]:
         """Judges code and returns verdict.
 
         Args:
             code (str): Source code.
             testcases (List[Testcase]): Testcase objects.
-            time_limit (int): Time limit in seconds.
+            time_limit (int): Time limit in milliseconds.
             memory_limit (int): Memory limit in KB.
 
         Returns:
@@ -123,8 +123,8 @@ class IsolateSandbox:
                     verdict = Verdict.AC
 
             result = Result(verdict=verdict,
-                            time=round(float(metadata['time']), 3),
-                            memory=round(float(metadata['max-rss']) / 1024, 3))
+                            time=int(metadata['time']),
+                            memory=int(metadata['max-rss']))
             results.append(result)
 
         verdicts = [r.verdict for r in results]
@@ -137,8 +137,8 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: float,
-        memory_limit: float,
+        time_limit: int,
+        memory_limit: int,
     ) -> Tuple[Verdict, List[Testcase]]:
         """Runs code, then set the answer of each testcase to the output.
 
@@ -147,7 +147,7 @@ class IsolateSandbox:
         Args:
             code (str): Source code.
             testcases (List[Testcase]): Testcase objects.
-            time_limit (int): Time limit in seconds.
+            time_limit (int): Time limit in milliseconds.
             memory_limit (int): Memory limit in KB.
 
         Returns:
@@ -184,15 +184,15 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: float,
-        memory_limit: float,
+        time_limit: int,
+        memory_limit: int,
     ) -> Generator[Tuple[str, Dict[str, str], int, Testcase], None, None]:
         """Iterate through the testcases and yield output.
 
         Args:
             code (str): Source code.
             testcases (List[Testcase]): Testcase objects.
-            time_limit (int): Time limit in seconds.
+            time_limit (int): Time limit in milliseconds.
             memory_limit (int): Memory limit in KB.
 
         Yields:
@@ -208,6 +208,9 @@ class IsolateSandbox:
         subprocess.run(['echo', code],
                        stdout=open(code_path, 'w', encoding='utf-8'),
                        check=False)
+        
+        # Convert milliseconds to seconds.
+        time_limit_sec = time_limit / 1000
 
         # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
         # if compilation fails
@@ -216,9 +219,9 @@ class IsolateSandbox:
             proc = subprocess.run(['isolate',
                                    '--box-id', f'{self.box_id}',
                                    '-M', metadata_path,
-                                   '-t', f'{time_limit}',
-                                   '-w', f'{time_limit+1}',
-                                   '-m', f'{int(round(memory_limit * 1024))}',
+                                   '-t', f'{time_limit_sec}',
+                                   '-w', f'{time_limit_sec+1}',
+                                   '-m', f'{memory_limit}',
                                    '--run', PYTHON_PATH, 'code.py'],
                                   input=testcase.input.encode('utf-8'),
                                   capture_output=True,
