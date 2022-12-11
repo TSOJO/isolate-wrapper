@@ -82,8 +82,8 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: int,
-        memory_limit: int,
+        time_limit: float,
+        memory_limit: float,
     ) -> Tuple[Verdict, List[Result]]:
         """Judges code and returns verdict.
 
@@ -101,7 +101,6 @@ class IsolateSandbox:
 
         for (output, metadata, return_code, testcase) \
             in self.run_code(code, testcases, time_limit, memory_limit):
-
             if return_code != 0:
                 # TLE, RE, CE, SE.
                 if metadata['status'] in ('RE', 'SG'):
@@ -138,8 +137,8 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: int,
-        memory_limit: int,
+        time_limit: float,
+        memory_limit: float,
     ) -> Tuple[Verdict, List[Testcase]]:
         """Runs code, then set the answer of each testcase to the output.
 
@@ -185,8 +184,8 @@ class IsolateSandbox:
         self,
         code: str,
         testcases: List[Testcase],
-        time_limit: int,
-        memory_limit: int,
+        time_limit: float,
+        memory_limit: float,
     ) -> Generator[Tuple[str, Dict[str, str], int, Testcase], None, None]:
         """Iterate through the testcases and yield output.
 
@@ -219,9 +218,9 @@ class IsolateSandbox:
                                    '-M', metadata_path,
                                    '-t', f'{time_limit}',
                                    '-w', f'{time_limit+1}',
-                                   '-m', f'{memory_limit}',
+                                   '-m', f'{int(round(memory_limit * 1024))}',
                                    '--run', PYTHON_PATH, 'code.py'],
-                                  input=testcase.input_.encode('utf-8'),
+                                  input=testcase.input.encode('utf-8'),
                                   capture_output=True,
                                   check=False)
 
@@ -247,7 +246,6 @@ class IsolateSandbox:
             for line in metadata_file.readlines():
                 key, value = line.split(':', maxsplit=1)
                 metadata[key] = value.strip()
-
         return metadata
 
     def check_output(self, output: str, answer: str) -> bool:
