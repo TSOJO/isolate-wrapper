@@ -123,7 +123,7 @@ class IsolateSandbox:
                     verdict = Verdict.AC
 
             result = Result(verdict=verdict,
-                            time=int(metadata['time']),
+                            time=int(float(metadata['time'])*1000),
                             memory=int(metadata['max-rss']))
             results.append(result)
 
