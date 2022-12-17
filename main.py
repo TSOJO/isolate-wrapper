@@ -132,32 +132,17 @@ class IsolateSandbox:
 
         self.cleanup()
         return (final_verdict, results)
-
+    
     def generate_answer(
         self,
         code: str,
-        testcases: List[Testcase],
+        input: str,
         time_limit: int,
         memory_limit: int,
-    ) -> Tuple[Verdict, List[Testcase]]:
-        """Runs code, then set the answer of each testcase to the output.
-
-        Returned verdict will be AC if code has run successfully.
-
-        Args:
-            code (str): Source code.
-            testcases (List[Testcase]): Testcase objects.
-            time_limit (int): Time limit in milliseconds.
-            memory_limit (int): Memory limit in KB.
-
-        Returns:
-            Tuple[Verdict, List[Testcase]]: (Final verdict, modified testcases)
-
-        """
-        verdicts = []
-
+    ) -> Tuple[str, Verdict]:
+        testcase = Testcase(input, '')
         for (output, metadata, return_code, testcase) \
-            in self.run_code(code, testcases, time_limit, memory_limit):
+            in self.run_code(code, [testcase], time_limit, memory_limit):
 
             if return_code != 0:
                 # TLE, RE, SE.
@@ -174,11 +159,58 @@ class IsolateSandbox:
                 testcase.answer = output
                 verdict = Verdict.AC
 
-            verdicts.append(verdict)
-
         logging.info('Finished generating output.')
         self.cleanup()
-        return (self.decide_final_verdict(verdicts), testcases)
+        return (testcase.answer, verdict)
+        
+
+    # def generate_answers(
+    #     self,
+    #     code: str,
+    #     testcases: List[Testcase],
+    #     time_limit: int,
+    #     memory_limit: int,
+    # ) -> Tuple[Verdict, List[Testcase]]:
+    #     # ! Maybe redundant...
+    #     """Runs code, then set the answer of each testcase to the output.
+
+    #     Returned verdict will be AC if code has run successfully.
+
+    #     Args:
+    #         code (str): Source code.
+    #         testcases (List[Testcase]): Testcase objects.
+    #         time_limit (int): Time limit in milliseconds.
+    #         memory_limit (int): Memory limit in KB.
+
+    #     Returns:
+    #         Tuple[Verdict, List[Testcase]]: (Final verdict, modified testcases)
+
+    #     """
+    #     verdicts = []
+
+    #     for (output, metadata, return_code, testcase) \
+    #         in self.run_code(code, testcases, time_limit, memory_limit):
+
+    #         if return_code != 0:
+    #             # TLE, RE, SE.
+    #             if metadata['status'] in ('RE', 'SG'):
+    #                 verdict = Verdict.RE
+    #             elif metadata['status'] == 'TO':
+    #                 verdict = Verdict.TLE
+    #             elif metadata['status'] == 'XX':
+    #                 verdict = Verdict.SE
+    #             else:
+    #                 raise Exception('Unexpected metadata status.')
+    #         else:
+    #             # Faithfully executed code.
+    #             testcase.answer = output
+    #             verdict = Verdict.AC
+
+    #         verdicts.append(verdict)
+
+    #     logging.info('Finished generating output.')
+    #     self.cleanup()
+    #     return (self.decide_final_verdict(verdicts), testcases)
 
     def run_code(
         self,
