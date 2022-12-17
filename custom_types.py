@@ -1,5 +1,7 @@
 from dataclasses import dataclass
+from typing import Any, Dict
 from enum import Enum
+
 
 @dataclass
 class Testcase:
@@ -12,6 +14,7 @@ class Testcase:
     """
     input: str
     answer: str
+
 
 class Verdict(Enum):
     """Verdict type.
@@ -27,11 +30,12 @@ class Verdict(Enum):
     CE = 'Compilation Error'
     SE = 'System Error'
 
-    def __repr__(self) -> str:
-        return self.name
+    @classmethod
+    def cast_from_document(cls, document: Any):
+        return Verdict[document['verdict']]
 
-    def __str__(self) -> str:
-        return self.__repr__()
+    def cast_to_document(self) -> Dict[str, Any]:
+        return {'verdict': self.name}
 
     def is_ac(self) -> bool:
         """Returns if object is AC
@@ -40,6 +44,13 @@ class Verdict(Enum):
             bool: Whether or not object is AC
         """
         return self is Verdict.AC
+
+    def __repr__(self) -> str:
+        return self.name
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
 
 @dataclass
 class Result:
@@ -54,6 +65,22 @@ class Result:
     verdict: Verdict
     time: float
     memory: float
+
+    @classmethod
+    def cast_from_document(cls, document: Any):
+        result_obj = Result(
+			verdict=Verdict.cast_from_document(document['verdict']),
+            time=document['time'],
+            memory=document['memory']
+		)
+        return result_obj
+
+    def cast_to_document(self) -> Dict[str, Any]:
+        return {
+            'verdict': Verdict.cast_to_document(self.verdict),
+            'time': self.time,
+            'memory': self.memory
+		}
 
     def __repr__(self) -> str:
         return f'(Verdict: {self.verdict}; time: {self.time}; memory: {self.memory})'
