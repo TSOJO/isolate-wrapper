@@ -29,6 +29,7 @@ class Verdict(Enum):
     RE = 'Runtime Error'
     CE = 'Compilation Error'
     SE = 'System Error'
+    WJ = 'Waiting for Judge'
 
     @classmethod
     def cast_from_document(cls, document: Any):

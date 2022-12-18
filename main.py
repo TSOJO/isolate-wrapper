@@ -78,6 +78,7 @@ class IsolateSandbox:
         logging.info('Cleaned up box %d.', self.box_id)
 
     # TODO: Make code a class, representing different languages.
+    # TODO: Fix docstring
     def judge(
         self,
         code: str,
@@ -126,12 +127,14 @@ class IsolateSandbox:
                             time=int(float(metadata['time'])*1000),
                             memory=int(metadata['max-rss']))
             results.append(result)
+            
+            yield result
 
-        verdicts = [r.verdict for r in results]
-        final_verdict = self.decide_final_verdict(verdicts)
+        # verdicts = [r.verdict for r in results]
+        # final_verdict = self.decide_final_verdict(verdicts)
 
         self.cleanup()
-        return (final_verdict, results)
+        # return (final_verdict, results)
     
     def generate_answer(
         self,
