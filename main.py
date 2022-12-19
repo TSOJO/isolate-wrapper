@@ -1,6 +1,6 @@
 import subprocess
 import logging
-from os import path
+import os
 from typing import List, Tuple, Dict, Generator
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
@@ -20,6 +20,7 @@ class IsolateSandbox:
     def __init__(self) -> None:
         """Try to initialise by assigning to an available box.
         """
+        os.makedirs(METADATA_FOLDER, exist_ok=True)
         self.ensure_isolate_installed()
         self.create()
 
@@ -235,8 +236,8 @@ class IsolateSandbox:
 
         """
         logging.info('Begin running code...')
-        code_path = path.join(self.box_path, 'code.py')
-        metadata_path = path.join(METADATA_FOLDER, f'{self.box_id}.txt')
+        code_path = os.path.join(self.box_path, 'code.py')
+        metadata_path = os.path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         # Write code to `code.py`.
         subprocess.run(['touch', code_path], check=False)
