@@ -36,7 +36,10 @@ class Verdict(Enum):
         return Verdict[document['verdict']]
 
     def cast_to_document(self) -> Dict[str, Any]:
-        return {'verdict': self.name}
+        return {
+            'verdict': self.name,
+            'verdict_long': self.value
+        }
 
     def is_ac(self) -> bool:
         """Returns if object is AC
@@ -45,6 +48,9 @@ class Verdict(Enum):
             bool: Whether or not object is AC
         """
         return self is Verdict.AC
+    
+    def is_wj(self) -> bool:
+        return self is Verdict.WJ
 
     def __repr__(self) -> str:
         return self.name
