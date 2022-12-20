@@ -8,7 +8,7 @@ class Testcase:
     """Testcase.
 
     Attributes:
-        input_ (str): Input for testcase.
+        input (str): Input for testcase.
         answer (str): Answer for testcase
 
     """
