@@ -318,6 +318,8 @@ class IsolateSandbox:
             Verdict: Overall verdict.
 
         """
+        if Verdict.WJ in verdicts:
+            return Verdict.WJ
         if Verdict.SE in verdicts:
             return Verdict.SE
         if Verdict.WA in verdicts:
