@@ -9,11 +9,13 @@ class Testcase:
 
     Attributes:
         input (str): Input for testcase.
-        answer (str): Answer for testcase
+        answer (str): Answer for testcase.
+        batch_number (int): Batch number for testcase.
 
     """
     input: str
     answer: str
+    batch_number: int = 1
 
 
 class Verdict(Enum):
