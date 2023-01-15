@@ -18,17 +18,17 @@ class IsolateSandbox:
     """
 
     def __init__(self) -> None:
-        """Try to initialise by assigning to an available box.
-        """
+        """Try to initialise by assigning to an available box."""
         os.makedirs(METADATA_FOLDER, exist_ok=True)
         self.ensure_isolate_installed()
         self.create()
 
     def ensure_isolate_installed(self) -> None:
-        """Ensures isolate is installed.
-        """
+        """Ensures isolate is installed."""
         try:
-            proc = subprocess.run(['isolate', '--version'], capture_output=True, check=True)
+            proc = subprocess.run(
+                ['isolate', '--version'], capture_output=True, check=True
+            )
         except:
             raise Exception('Isolate is not installed.')
 
@@ -44,11 +44,11 @@ class IsolateSandbox:
 
         logging.info('Creating sandbox...')
         for id_ in range(0, MAX_BOX):
-            proc = subprocess.run(['isolate',
-                                   '--box-id', f'{id_}',
-                                   '--init'],
-                                  capture_output=True,
-                                  check=False)
+            proc = subprocess.run(
+                ['isolate', '--box-id', f'{id_}', '--init'],
+                capture_output=True,
+                check=False,
+            )
             if proc.returncode != 0:
                 # Box already in use.
                 logging.info('Box %d in use. Trying next...', id_)
@@ -58,8 +58,9 @@ class IsolateSandbox:
             self.box_path = proc.stdout.decode('utf-8')[:-1] + '/box'
             self.box_id = id_
 
-            logging.info('Box %d available. Created box at %s',
-                         self.box_id, self.box_path)
+            logging.info(
+                'Box %d available. Created box at %s', self.box_id, self.box_path
+            )
             return
 
         raise Exception('All boxes full')
@@ -72,10 +73,9 @@ class IsolateSandbox:
             then box will continue to be occupied. Manual cleanup is then needed.
 
         """
-        subprocess.run(['isolate',
-                        '--box-id', f'{self.box_id}',
-                        '--cleanup'],
-                       check=False)
+        subprocess.run(
+            ['isolate', '--box-id', f'{self.box_id}', '--cleanup'], check=False
+        )
         logging.info('Cleaned up box %d.', self.box_id)
 
     # TODO: Make code a class, representing different languages.
@@ -101,14 +101,15 @@ class IsolateSandbox:
         """
         results: List[Result] = []
 
-        for (output, metadata, return_code, testcase) \
-            in self.run_code(code, testcases, time_limit, memory_limit):
+        for (output, metadata, return_code, testcase) in self.run_code(
+            code, testcases, time_limit, memory_limit
+        ):
             if return_code != 0:
                 # TLE, RE, CE, SE.
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
                     if 'max-rss' in metadata:
-                        if float(metadata['max-rss']) > memory_limit * .8:
+                        if float(metadata['max-rss']) > memory_limit * 0.8:
                             verdict = Verdict.MLE
                 elif metadata['status'] == 'TO':
                     verdict = Verdict.TLE
@@ -124,11 +125,13 @@ class IsolateSandbox:
                 else:
                     verdict = Verdict.AC
 
-            result = Result(verdict=verdict,
-                            time=int(float(metadata['time'])*1000),
-                            memory=int(metadata['max-rss']))
+            result = Result(
+                verdict=verdict,
+                time=int(float(metadata['time']) * 1000),
+                memory=int(metadata['max-rss']),
+            )
             results.append(result)
-            
+
             yield result
 
         # verdicts = [r.verdict for r in results]
@@ -136,7 +139,7 @@ class IsolateSandbox:
 
         self.cleanup()
         # return (final_verdict, results)
-    
+
     def generate_answer(
         self,
         code: str,
@@ -145,8 +148,9 @@ class IsolateSandbox:
         memory_limit: int,
     ) -> Tuple[str, Verdict]:
         testcase = Testcase(input, '')
-        for (output, metadata, return_code, testcase) \
-            in self.run_code(code, [testcase], time_limit, memory_limit):
+        for (output, metadata, return_code, testcase) in self.run_code(
+            code, [testcase], time_limit, memory_limit
+        ):
 
             if return_code != 0:
                 # TLE, RE, SE.
@@ -166,7 +170,6 @@ class IsolateSandbox:
         logging.info('Finished generating output.')
         self.cleanup()
         return (testcase.answer, verdict)
-        
 
     # def generate_answers(
     #     self,
@@ -241,10 +244,10 @@ class IsolateSandbox:
 
         # Write code to `code.py`.
         subprocess.run(['touch', code_path], check=False)
-        subprocess.run(['echo', code],
-                       stdout=open(code_path, 'w', encoding='utf-8'),
-                       check=False)
-        
+        subprocess.run(
+            ['echo', code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
+        )
+
         # Convert milliseconds to seconds.
         time_limit_sec = time_limit / 1000
 
@@ -252,16 +255,22 @@ class IsolateSandbox:
         # if compilation fails
         # return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
         for testcase in testcases:
-            proc = subprocess.run(['isolate',
-                                   '--box-id', f'{self.box_id}',
-                                   '-M', metadata_path,
-                                   '-t', f'{time_limit_sec}',
-                                   '-w', f'{time_limit_sec+1}',
-                                   '-m', f'{memory_limit}',
-                                   '--run', PYTHON_PATH, 'code.py'],
-                                  input=testcase.input.encode('utf-8'),
-                                  capture_output=True,
-                                  check=False)
+            proc = subprocess.run(
+                [
+                    'isolate',
+                    '--box-id', f'{self.box_id}',
+                    '-M', metadata_path,
+                    '-t', f'{time_limit_sec}',
+                    '-w', f'{time_limit_sec+1}',
+                    '-m', f'{memory_limit}',
+                    '--run',
+                    PYTHON_PATH,
+                    'code.py',
+                ],
+                input=testcase.input.encode('utf-8'),
+                capture_output=True,
+                check=False,
+            )
 
             output = proc.stdout.decode('utf-8')
             metadata = self.read_metadata(metadata_path)

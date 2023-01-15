@@ -13,6 +13,7 @@ class Testcase:
         batch_number (int): Batch number for testcase.
 
     """
+
     input: str
     answer: str
     batch_number: int = 1
@@ -24,6 +25,7 @@ class Verdict(Enum):
     Will be one of AC/WA/TLE/MLE/RE/CE/SE
 
     """
+
     AC = 'Accepted'
     WA = 'Wrong Answer'
     TLE = 'Time Limit Exceeded'
@@ -38,10 +40,7 @@ class Verdict(Enum):
         return Verdict[document['verdict']]
 
     def cast_to_document(self) -> Dict[str, Any]:
-        return {
-            'verdict': self.name,
-            'verdict_long': self.value
-        }
+        return {'verdict': self.name, 'verdict_long': self.value}
 
     def is_ac(self) -> bool:
         """Returns if object is AC
@@ -50,7 +49,7 @@ class Verdict(Enum):
             bool: Whether or not object is AC
         """
         return self is Verdict.AC
-    
+
     def is_wj(self) -> bool:
         return self is Verdict.WJ
 
@@ -63,7 +62,7 @@ class Verdict(Enum):
 
 @dataclass
 class Result:
-    """ Result.
+    """Result.
 
     Attributes:
         verdict (Verdict): Verdict of result.
@@ -71,6 +70,7 @@ class Result:
         memory (int): Memory used in KB.
 
     """
+
     verdict: Verdict
     time: float
     memory: float
@@ -78,18 +78,18 @@ class Result:
     @classmethod
     def cast_from_document(cls, document: Any):
         result_obj = Result(
-			verdict=Verdict.cast_from_document(document['verdict']),
+            verdict=Verdict.cast_from_document(document['verdict']),
             time=document['time'],
-            memory=document['memory']
-		)
+            memory=document['memory'],
+        )
         return result_obj
 
     def cast_to_document(self) -> Dict[str, Any]:
         return {
             'verdict': Verdict.cast_to_document(self.verdict),
             'time': self.time,
-            'memory': self.memory
-		}
+            'memory': self.memory,
+        }
 
     def __repr__(self) -> str:
         return f'(Verdict: {self.verdict}; time: {self.time}; memory: {self.memory})'
