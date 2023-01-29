@@ -2,7 +2,7 @@
 from os import environ
 
 # Path to Python.
-if environ.get('DEV') == 1:
+if environ.get('DEV') == '1':
     PYTHON_PATH = '/usr/bin/python3'
 else:
     PYTHON_PATH = environ.get('PYTHON_PATH')
