@@ -74,6 +74,11 @@ class Result:
     verdict: Verdict
     time: float
     memory: float
+    message: str
+
+    @classmethod
+    def empty(cls):
+        return Result(Verdict.WJ, -1, -1, '')
 
     @classmethod
     def cast_from_document(cls, document: Any):
@@ -81,6 +86,7 @@ class Result:
             verdict=Verdict.cast_from_document(document['verdict']),
             time=document['time'],
             memory=document['memory'],
+            message=document['message'],
         )
         return result_obj
 
@@ -89,10 +95,11 @@ class Result:
             'verdict': Verdict.cast_to_document(self.verdict),
             'time': self.time,
             'memory': self.memory,
+            'message': self.message,
         }
 
     def __repr__(self) -> str:
-        return f'(Verdict: {self.verdict}; time: {self.time}; memory: {self.memory})'
+        return f'(Verdict: {self.verdict}; time: {self.time}; memory: {self.memory}; message: {self.message})'
 
     def __str__(self) -> str:
         return self.__repr__()
