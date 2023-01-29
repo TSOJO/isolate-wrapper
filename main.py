@@ -148,14 +148,14 @@ class IsolateSandbox:
         memory_limit: int,
     ) -> Tuple[str, Verdict]:
         testcase = Testcase(input, '')
-        for (output, metadata, return_code, testcase) in self.run_code(
-            code, [testcase], time_limit, memory_limit
+        message = ''
+        for (output, metadata, return_code, error, testcase) in self.run_code(
+            code, [testcase], time_limit, memory_limit, give_error=True
         ):
-
             if return_code != 0:
-                # TLE, RE, SE.
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
+                    message = error
                 elif metadata['status'] == 'TO':
                     verdict = Verdict.TLE
                 elif metadata['status'] == 'XX':
@@ -163,13 +163,12 @@ class IsolateSandbox:
                 else:
                     raise Exception('Unexpected metadata status.')
             else:
-                # Faithfully executed code.
                 testcase.answer = output
                 verdict = Verdict.AC
 
         logging.info('Finished generating output.')
         self.cleanup()
-        return (testcase.answer, verdict)
+        return (testcase.answer, verdict, message)
 
     # def generate_answers(
     #     self,
@@ -225,6 +224,7 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
+        give_error: bool = False,
     ) -> Generator[Tuple[str, Dict[str, str], int, Testcase], None, None]:
         """Iterate through the testcases and yield output.
 
@@ -273,9 +273,14 @@ class IsolateSandbox:
             )
 
             output = proc.stdout.decode('utf-8')
+            error = proc.stderr.decode('utf-8').split('\n')[-3]
+            logging.warning(f'Error: {error}')
             metadata = self.read_metadata(metadata_path)
             return_code = proc.returncode
-            yield (output, metadata, return_code, testcase)
+            if give_error:
+                yield (output, metadata, return_code, error, testcase)
+            else:
+                yield (output, metadata, return_code, testcase)
 
         logging.info('Finished running.')
 
