@@ -170,54 +170,6 @@ class IsolateSandbox:
         self.cleanup()
         return (testcase.answer, verdict, message)
 
-    # def generate_answers(
-    #     self,
-    #     code: str,
-    #     testcases: List[Testcase],
-    #     time_limit: int,
-    #     memory_limit: int,
-    # ) -> Tuple[Verdict, List[Testcase]]:
-    #     # ! Maybe redundant...
-    #     """Runs code, then set the answer of each testcase to the output.
-
-    #     Returned verdict will be AC if code has run successfully.
-
-    #     Args:
-    #         code (str): Source code.
-    #         testcases (List[Testcase]): Testcase objects.
-    #         time_limit (int): Time limit in milliseconds.
-    #         memory_limit (int): Memory limit in KB.
-
-    #     Returns:
-    #         Tuple[Verdict, List[Testcase]]: (Final verdict, modified testcases)
-
-    #     """
-    #     verdicts = []
-
-    #     for (output, metadata, return_code, testcase) \
-    #         in self.run_code(code, testcases, time_limit, memory_limit):
-
-    #         if return_code != 0:
-    #             # TLE, RE, SE.
-    #             if metadata['status'] in ('RE', 'SG'):
-    #                 verdict = Verdict.RE
-    #             elif metadata['status'] == 'TO':
-    #                 verdict = Verdict.TLE
-    #             elif metadata['status'] == 'XX':
-    #                 verdict = Verdict.SE
-    #             else:
-    #                 raise Exception('Unexpected metadata status.')
-    #         else:
-    #             # Faithfully executed code.
-    #             testcase.answer = output
-    #             verdict = Verdict.AC
-
-    #         verdicts.append(verdict)
-
-    #     logging.info('Finished generating output.')
-    #     self.cleanup()
-    #     return (self.decide_final_verdict(verdicts), testcases)
-
     def run_code(
         self,
         code: str,
@@ -274,7 +226,7 @@ class IsolateSandbox:
 
             output = proc.stdout.decode('utf-8')
             error = proc.stderr.decode('utf-8').split('\n')[-3]
-            logging.warning(f'Error: {error}')
+            logging.info(f'User code gave error: {error}')
             metadata = self.read_metadata(metadata_path)
             return_code = proc.returncode
             if give_error:
