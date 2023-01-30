@@ -5,6 +5,7 @@ from typing import List, Tuple, Dict, Generator
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
 from .custom_types import Verdict, Result, Testcase
+from .source_code import SourceCode
 
 
 class IsolateSandbox:
@@ -203,14 +204,9 @@ class IsolateSandbox:
 
         """
         logging.info('Begin running code...')
-        code_path = os.path.join(self.box_path, 'code.py')
         metadata_path = os.path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
-        # Write code to `code.py`.
-        subprocess.run(['touch', code_path], check=False)
-        subprocess.run(
-            ['echo', code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
-        )
+        source_code = SourceCode(self.box_path, code, 'py')
 
         # Convert milliseconds to seconds.
         time_limit_sec = time_limit / 1000
@@ -219,21 +215,12 @@ class IsolateSandbox:
         # if compilation fails
         # return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
         for testcase in testcases:
-            proc = subprocess.run(
-                [
-                    'isolate',
-                    '--box-id', f'{self.box_id}',
-                    '-M', metadata_path,
-                    '-t', f'{time_limit_sec}',
-                    '-w', f'{time_limit_sec+1}',
-                    '-m', f'{memory_limit}',
-                    '--run',
-                    PYTHON_PATH,
-                    'code.py',
-                ],
-                input=testcase.input.encode('utf-8'),
-                capture_output=True,
-                check=False,
+            proc = source_code.run(
+                box_id=self.box_id,
+                metadata_path=metadata_path,
+                time_limit=time_limit_sec,
+                memory_limit=memory_limit,
+                input_=testcase.input,
             )
 
             output = proc.stdout.decode('utf-8')
