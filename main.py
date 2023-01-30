@@ -23,7 +23,8 @@ class IsolateSandbox:
         self.ensure_isolate_installed()
         self.create()
 
-    def ensure_isolate_installed(self) -> None:
+    @staticmethod
+    def ensure_isolate_installed() -> None:
         """Ensures isolate is installed."""
         try:
             proc = subprocess.run(
@@ -31,6 +32,14 @@ class IsolateSandbox:
             )
         except:
             raise Exception('Isolate is not installed.')
+        
+    @staticmethod
+    def cleanup_all() -> None:
+        """Clean up all boxes."""
+        for box_id in os.listdir('/var/local/lib/isolate'):
+            subprocess.run(
+                ['isolate', '--box-id', f'{box_id}', '--cleanup'], check=False
+            )
 
     def create(self):
         """Try assign to an available box.
