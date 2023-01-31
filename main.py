@@ -4,6 +4,7 @@ import os
 from typing import List, Tuple, Dict, Generator
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
+from .constants import *
 from .custom_types import Verdict, Result, Testcase
 from .source_code import SourceCode
 
@@ -115,8 +116,10 @@ class IsolateSandbox:
             code, testcases, time_limit, memory_limit
         ):
             message = ''
-            if return_code != 0:
-                # TLE, RE, CE, SE.
+            if return_code == COMPILATION_ERROR_RETURN_CODE:
+                verdict = Verdict.CE
+                message = error
+            elif return_code != 0:
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
                     message = error
@@ -130,7 +133,6 @@ class IsolateSandbox:
                     # This following code should be unreachable.
                     raise Exception('Unexpected metadata status.')
             else:
-                # WA, AC.
                 if not self.check_output(output, testcase.answer):
                     verdict = Verdict.WA
                 else:
@@ -138,8 +140,8 @@ class IsolateSandbox:
 
             result = Result(
                 verdict=verdict,
-                time=int(float(metadata['time']) * 1000),
-                memory=int(metadata['max-rss']),
+                time=int(float(metadata['time']) * 1000) if 'time' in metadata else -1,
+                memory=int(metadata['max-rss']) if 'max-rss' in metadata else -1,
                 message=message
             )
             results.append(result)
@@ -164,7 +166,10 @@ class IsolateSandbox:
         for (output, error, metadata, return_code, testcase) in self.run_code(
             code, [testcase], time_limit, memory_limit
         ):
-            if return_code != 0:
+            if return_code == COMPILATION_ERROR_RETURN_CODE:
+                verdict = Verdict.CE
+                message = error
+            elif return_code != 0:
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
                     if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
@@ -206,29 +211,29 @@ class IsolateSandbox:
         logging.info('Begin running code...')
         metadata_path = os.path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
-        source_code = SourceCode(self.box_path, code, 'py')
+        source_code = SourceCode(self.box_path, code, 'cpp')
+        compile_message = source_code.compile_if_needed()
+
+        if compile_message:
+            logging.info('Compilation failed.')
+            for testcase in testcases:
+                yield ('', compile_message, {}, COMPILATION_ERROR_RETURN_CODE, testcase)
+            return
 
         # Convert milliseconds to seconds.
         time_limit_sec = time_limit / 1000
 
-        # TODO: For non-python code, we need to compile it first, return CE if compilation fails.
-        # if compilation fails
-        # return Verdict.CE, [Verdict.CE for _ in range(len(testcases))]
         for testcase in testcases:
-            proc = source_code.run(
+            output, error, return_code = source_code.run(
                 box_id=self.box_id,
                 metadata_path=metadata_path,
                 time_limit=time_limit_sec,
                 memory_limit=memory_limit,
                 input_=testcase.input,
             )
-
-            output = proc.stdout.decode('utf-8')
-            error = '\n'.join(proc.stderr.decode('utf-8').split('\n')[:-2])
             if error:
                 logging.info(f'User code gave error: {error}')
             metadata = self.read_metadata(metadata_path)
-            return_code = proc.returncode
             yield (output, error, metadata, return_code, testcase)
 
         logging.info('Finished running.')
@@ -285,6 +290,8 @@ class IsolateSandbox:
             return Verdict.WJ
         if Verdict.SE in verdicts:
             return Verdict.SE
+        if Verdict.CE in verdicts:
+            return Verdict.CE
         if Verdict.WA in verdicts:
             return Verdict.WA
         if Verdict.RE in verdicts:

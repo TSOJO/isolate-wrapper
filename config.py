@@ -7,6 +7,8 @@ if environ.get('DEV') == '1':
 else:
     PYTHON_PATH = environ.get('PYTHON_PATH')
 
+CPP_COMPILE_FLAGS = '-static -std=c++2a -s -O2'
+
 # Maximum number of concurrent sandboxes.
 MAX_BOX = 1000
 
