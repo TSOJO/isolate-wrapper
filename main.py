@@ -34,7 +34,7 @@ class IsolateSandbox:
             )
         except:
             raise Exception('Isolate is not installed.')
-        
+
     @staticmethod
     def cleanup_all() -> None:
         """Clean up all boxes."""
@@ -89,11 +89,9 @@ class IsolateSandbox:
         )
         logging.info('Cleaned up box %d.', self.box_id)
 
-    # TODO: Make code a class, representing different languages.
-    # TODO: Fix docstring
     def judge(
         self,
-        code: str,
+        source_code: SourceCode,
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
@@ -110,11 +108,11 @@ class IsolateSandbox:
             tuple[Verdict, List[Result]]: Tuple of final verdict and results.
 
         """
-        results: List[Result] = []
-
-        for (output, error, metadata, return_code, testcase) in self.run_code(
-            code, testcases, time_limit, memory_limit
-        ):
+        logging.info('Judging code...')
+        for testcase in testcases:
+            output, error, metadata, return_code = self.run_code(
+                source_code, testcase.input, time_limit, memory_limit
+            )
             message = ''
             if return_code == COMPILATION_ERROR_RETURN_CODE:
                 verdict = Verdict.CE
@@ -140,50 +138,96 @@ class IsolateSandbox:
 
             result = Result(
                 verdict=verdict,
-                time=int(float(metadata['time']) * 1000) if 'time' in metadata else -1,
-                memory=int(metadata['max-rss']) if 'max-rss' in metadata else -1,
+                time=int(float(metadata['time']) *
+                         1000) if 'time' in metadata else -1,
+                memory=int(metadata['max-rss']
+                           ) if 'max-rss' in metadata else -1,
                 message=message
             )
-            results.append(result)
-
             yield result
-
-        # verdicts = [r.verdict for r in results]
-        # final_verdict = self.decide_final_verdict(verdicts)
-
+        logging.info('Finished judging code.')
         self.cleanup()
-        # return (final_verdict, results)
 
-    def generate_answer(
+    def judge_with_grader(
         self,
-        code: str,
-        input: str,
+        source_code: SourceCode,
+        testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
-    ) -> Tuple[str, Verdict]:
-        testcase = Testcase(input, '')
-        message = ''
-        for (output, error, metadata, return_code, testcase) in self.run_code(
-            code, [testcase], time_limit, memory_limit
-        ):
+        grader_code: SourceCode,
+    ) -> Generator[Result, None, None]:
+        for testcase in testcases:
+            output, error, metadata, return_code = self.run_code(
+                source_code, testcase.input, time_limit, memory_limit
+            )
+            message = ''
             if return_code == COMPILATION_ERROR_RETURN_CODE:
                 verdict = Verdict.CE
                 message = error
             elif return_code != 0:
                 if metadata['status'] in ('RE', 'SG'):
                     verdict = Verdict.RE
+                    message = error
                     if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
                         verdict = Verdict.MLE
-                    message = error
                 elif metadata['status'] == 'TO':
                     verdict = Verdict.TLE
                 elif metadata['status'] == 'XX':
                     verdict = Verdict.SE
                 else:
+                    # This following code should be unreachable.
                     raise Exception('Unexpected metadata status.')
             else:
-                testcase.answer = output
-                verdict = Verdict.AC
+                # ? should grader use the same time limit / memory limit as the code?
+                grader_output, _, _, grader_return_code = self.run_code(grader_code, Testcase(output, ''), time_limit, memory_limit)
+                if grader_return_code != 0:
+                    verdict = Verdict.SE
+                else:
+                    if self.check_output(grader_output, 'AC'):
+                        verdict = Verdict.AC
+                    elif self.check_output(grader_output, 'WA'):
+                        verdict = Verdict.WA
+                    else:
+                        verdict = Verdict.SE
+
+            result = Result(
+                verdict=verdict,
+                time=int(float(metadata['time']) *
+                         1000) if 'time' in metadata else -1,
+                memory=int(metadata['max-rss']
+                           ) if 'max-rss' in metadata else -1,
+                message=message
+            )
+            yield result
+
+    def generate_answer(
+        self,
+        source_code: SourceCode,
+        input: str,
+        time_limit: int,
+        memory_limit: int,
+    ) -> Tuple[str, Verdict]:
+        testcase = Testcase(input, '')
+        message = ''
+        output, error, metadata, return_code = self.run_code(source_code, testcase, time_limit, memory_limit) 
+        if return_code == COMPILATION_ERROR_RETURN_CODE:
+            verdict = Verdict.CE
+            message = error
+        elif return_code != 0:
+            if metadata['status'] in ('RE', 'SG'):
+                verdict = Verdict.RE
+                if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
+                    verdict = Verdict.MLE
+                message = error
+            elif metadata['status'] == 'TO':
+                verdict = Verdict.TLE
+            elif metadata['status'] == 'XX':
+                verdict = Verdict.SE
+            else:
+                raise Exception('Unexpected metadata status.')
+        else:
+            testcase.answer = output
+            verdict = Verdict.AC
 
         logging.info('Finished generating output.')
         self.cleanup()
@@ -191,52 +235,36 @@ class IsolateSandbox:
 
     def run_code(
         self,
-        code: str,
-        testcases: List[Testcase],
+        source_code: SourceCode,
+        input: str,
         time_limit: int,
         memory_limit: int,
-    ) -> Generator[Tuple[str, Dict[str, str], int, Testcase], None, None]:
-        """Iterate through the testcases and yield output.
-
-        Args:
-            code (str): Source code.
-            testcases (List[Testcase]): Testcase objects.
-            time_limit (int): Time limit in milliseconds.
-            memory_limit (int): Memory limit in KB.
-
-        Yields:
-            Tuple[str, Dict[str, str], int, Testcase]: (Output, metadata, return code, current testcase)
-
+    ) -> Tuple[str, str, Dict[str, str], int]:
         """
-        logging.info('Begin running code...')
+        Run the code and return the output, error, metadata, and return code.
+        """
         metadata_path = os.path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
-        source_code = SourceCode(self.box_path, code, 'cpp')
+        source_code.box_path = self.box_path
         compile_message = source_code.compile_if_needed()
-
         if compile_message:
             logging.info('Compilation failed.')
-            for testcase in testcases:
-                yield ('', compile_message, {}, COMPILATION_ERROR_RETURN_CODE, testcase)
-            return
+            return ('', compile_message, {}, COMPILATION_ERROR_RETURN_CODE)
 
         # Convert milliseconds to seconds.
         time_limit_sec = time_limit / 1000
 
-        for testcase in testcases:
-            output, error, return_code = source_code.run(
-                box_id=self.box_id,
-                metadata_path=metadata_path,
-                time_limit=time_limit_sec,
-                memory_limit=memory_limit,
-                input_=testcase.input,
-            )
-            if error:
-                logging.info(f'User code gave error: {error}')
-            metadata = self.read_metadata(metadata_path)
-            yield (output, error, metadata, return_code, testcase)
-
-        logging.info('Finished running.')
+        output, error, return_code = source_code.run(
+            box_id=self.box_id,
+            metadata_path=metadata_path,
+            time_limit=time_limit_sec,
+            memory_limit=memory_limit,
+            input=input,
+        )
+        if error:
+            logging.info(f'User code gave error: {error}')
+        metadata = self.read_metadata(metadata_path)
+        return (output, error, metadata, return_code)
 
     def read_metadata(self, metadata_path: str) -> Dict[str, str]:
         """Reads metadata file and return dictionary of metadata.
