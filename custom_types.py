@@ -17,6 +17,21 @@ class Testcase:
     input: str
     answer: str
     batch_number: int = 1
+    
+    @classmethod
+	def cast_from_document(cls, document: str) -> Language:
+		return Testcase(
+            input=document['input'],
+            answer=document['answer'],
+            batch_number=document['batch_number'],
+        )
+
+    def cast_to_document(self) -> str:
+		return {
+            'input': self.input,
+            'answer': self.answer,
+            'batch_number': self.batch_number,
+        }
 
 
 class Verdict(Enum):
@@ -100,6 +115,30 @@ class Result:
 
     def __repr__(self) -> str:
         return f'(Verdict: {self.verdict}; time: {self.time}; memory: {self.memory}; message: {self.message})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+@dataclass
+class Language:
+    file_extension: str
+    ace_mode: str
+    
+	@classmethod
+	def cast_from_document(cls, document: str) -> Language:
+		return Language(
+            file_extension=document['file_extension'],
+            ace_mode=document['ace_mode'],
+        )
+
+    def cast_to_document(self) -> str:
+		return {
+            'file_extension': self.file_extension,
+            'ace_mode': self.ace_mode,
+        }
+    
+    def __repr__(self) -> str:
+        return self.file_extension
 
     def __str__(self) -> str:
         return self.__repr__()

@@ -1,10 +1,11 @@
 import subprocess
 from .config import PYTHON_PATH, CPP_COMPILE_FLAGS
+from .custom_types import Language
 import os
 
 
 class SourceCode:
-    def __init__(self, code: str, language: str, box_path: str=None) -> None:
+    def __init__(self, code: str, language: Language, box_path: str=None) -> None:
         self.code = code
         self.language = language
         self.run_args = None
@@ -26,14 +27,14 @@ class SourceCode:
             if self.run_args == []:
                 return 'See error details in the first testcase.'
             return ''
-        if self.language == 'py':
+        if self.language.file_extension == 'py':
             code_path = os.path.join(self.box_path, 'code.py')
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
                 ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
             )
             self.run_args = [PYTHON_PATH, 'code.py']
-        elif self.language == 'cpp':
+        elif self.language.file_extension == 'cpp':
             code_path = os.path.join(self.box_path, 'code.cpp')
             exe_path = os.path.join(self.box_path, 'code')
             subprocess.run(['touch', code_path], check=False)
@@ -71,7 +72,7 @@ class SourceCode:
         )
         output = proc.stdout.decode('utf-8')
         error_raw = '\n'.join(proc.stderr.decode('utf-8').split('\n')[:-2])
-        if self.language == 'py':
+        if self.language.file_extension == 'py':
             error = error_raw[error_raw.rfind('Traceback (most recent call last):'):]
         else:
             error = ''
