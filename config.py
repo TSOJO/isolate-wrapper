@@ -16,13 +16,13 @@ MAX_BOX = 1000
 # Folder to store metadata, which will be read to infer verdict.
 METADATA_FOLDER = 'metadata'
 
-SUPPORTED_LANGUAGES = [
-    Language(
+SUPPORTED_LANGUAGES = {
+    'cpp': Language(
         file_extension='cpp',
         ace_mode='c_cpp',
     ),
-    Language(
+    'py': Language(
         file_extension='py',
         ace_mode='python',
     ),
-]
+}

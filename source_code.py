@@ -1,13 +1,13 @@
 import subprocess
-from .config import PYTHON_PATH, CPP_COMPILE_FLAGS
+from .config import PYTHON_PATH, CPP_COMPILE_FLAGS, SUPPORTED_LANGUAGES
 from .custom_types import Language
 import os
 
 
 class SourceCode:
-    def __init__(self, code: str, language: Language, box_path: str=None) -> None:
+    def __init__(self, code: str, language_str: str, box_path: str=None) -> None:
         self.code = code
-        self.language = language
+        self.language = SUPPORTED_LANGUAGES[language_str]
         self.run_args = None
 
         self._box_path = box_path
