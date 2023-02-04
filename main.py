@@ -207,7 +207,6 @@ class IsolateSandbox:
         time_limit: int,
         memory_limit: int,
     ) -> Tuple[str, Verdict]:
-        testcase = Testcase(input, '')
         message = ''
         output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit) 
         if return_code == COMPILATION_ERROR_RETURN_CODE:
@@ -226,12 +225,12 @@ class IsolateSandbox:
             else:
                 raise Exception('Unexpected metadata status.')
         else:
-            testcase.answer = output
+            answer = output
             verdict = Verdict.AC
 
         logging.info('Finished generating output.')
         self.cleanup()
-        return (testcase.answer, verdict, message)
+        return (answer, verdict, message)
 
     def run_code(
         self,
