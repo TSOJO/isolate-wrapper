@@ -4,7 +4,7 @@ import os
 from typing import List, Tuple, Dict, Generator
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
-from .constants import *
+from .constants import COMPILATION_ERROR_RETURN_CODE
 from .custom_types import Verdict, Result, Testcase
 from .source_code import SourceCode
 

@@ -1,5 +1,5 @@
 import subprocess
-from .config import *
+from .config import PYTHON_PATH, CPP_COMPILE_FLAGS
 import os
 
 
