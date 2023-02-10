@@ -1,13 +1,13 @@
 import subprocess
-from .config import PYTHON_PATH, CPP_COMPILE_FLAGS, SUPPORTED_LANGUAGES
+from .config import PYTHON_PATH, CPP_COMPILE_FLAGS
 from .custom_types import Language
 import os
 
 
 class SourceCode:
-    def __init__(self, code: str, language_str: str, box_path: str=None) -> None:
+    def __init__(self, code: str, language: Language, box_path: str=None) -> None:
         self.code = code
-        self.language = SUPPORTED_LANGUAGES[language_str]
+        self.language = language
         self.run_args = None
 
         self._box_path = box_path
@@ -27,14 +27,14 @@ class SourceCode:
             if self.run_args == []:
                 return 'See error details in the first testcase.'
             return ''
-        if self.language.file_extension == 'py':
+        if self.language == Language.PYTHON:
             code_path = os.path.join(self.box_path, 'code.py')
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
                 ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
             )
             self.run_args = [PYTHON_PATH, 'code.py']
-        elif self.language.file_extension == 'cpp':
+        elif self.language == Language.CPLUSPLUS:
             code_path = os.path.join(self.box_path, 'code.cpp')
             exe_path = os.path.join(self.box_path, 'code')
             subprocess.run(['touch', code_path], check=False)
@@ -50,8 +50,6 @@ class SourceCode:
             if error:
                 self.run_args = []
                 return error
-        else:
-            raise ValueError(f'Language {self.language} is not supported.')
         return ''
 
     def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):

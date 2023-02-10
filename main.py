@@ -209,6 +209,7 @@ class IsolateSandbox:
     ) -> Tuple[str, Verdict]:
         message = ''
         output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit) 
+        answer = ''
         if return_code == COMPILATION_ERROR_RETURN_CODE:
             verdict = Verdict.CE
             message = error

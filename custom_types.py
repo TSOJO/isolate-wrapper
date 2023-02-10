@@ -1,6 +1,8 @@
+from __future__ import annotations
+
+from enum import Enum
 from dataclasses import dataclass
 from typing import Any, Dict
-from enum import Enum
 
 
 @dataclass
@@ -19,7 +21,7 @@ class Testcase:
 	batch_number: int = 1
 	
 	@classmethod
-	def cast_from_document(cls, document: str):
+	def cast_from_document(cls, document: str) -> Language:
 		return Testcase(
 			input=document['input'],
 			answer=document['answer'],
@@ -118,27 +120,26 @@ class Result:
 
 	def __str__(self) -> str:
 		return self.__repr__()
-
-@dataclass
-class Language:
-	file_extension: str
-	ace_mode: str
 	
-	@classmethod
-	def cast_from_document(cls, document: str):
-		return Language(
-			file_extension=document['file_extension'],
-			ace_mode=document['ace_mode'],
-		)
+
+class Language(Enum):
+	# https://stackoverflow.com/questions/12680080/python-enums-with-attributes
+	def __new__(cls, *args, **kwds):
+		value = len(cls.__members__) + 1
+		obj = object.__new__(cls)
+		obj._value_ = value
+		return obj
+	def __init__(self, file_extension):
+		self.file_extension = file_extension
+	
+	CPLUSPLUS = ('cpp')
+	PYTHON = ('py')
 
 	def cast_to_document(self) -> str:
-		return {
-			'file_extension': self.file_extension,
-			'ace_mode': self.ace_mode,
-		}
+		return self.name
 	
-	def __repr__(self) -> str:
-		return self.file_extension
+	@classmethod
+	def cast_from_document(cls, document: str) -> Language:
+		return Language[document]
 
-	def __str__(self) -> str:
-		return self.__repr__()
+	
