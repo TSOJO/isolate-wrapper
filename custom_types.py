@@ -129,11 +129,12 @@ class Language(Enum):
 		obj = object.__new__(cls)
 		obj._value_ = value
 		return obj
-	def __init__(self, file_extension):
+	def __init__(self, file_extension, ui_name):
 		self.file_extension = file_extension
+		self.ui_name = ui_name
 	
-	CPLUSPLUS = ('cpp')
-	PYTHON = ('py')
+	CPLUSPLUS = ('cpp', 'C++')
+	PYTHON = ('py', 'Python')
 
 	def cast_to_document(self) -> str:
 		return self.name
