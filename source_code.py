@@ -11,6 +11,7 @@ class SourceCode:
         self.run_args = None
 
         self._box_path = box_path
+        self.file_name = 'code'
 
     @property
     def box_path(self):
@@ -28,15 +29,15 @@ class SourceCode:
                 return 'See error details in the first testcase.'
             return ''
         if self.language == Language.PYTHON:
-            code_path = os.path.join(self.box_path, 'code.py')
+            code_path = os.path.join(self.box_path, f'{self.file_name}.py')
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
                 ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
             )
-            self.run_args = [PYTHON_PATH, 'code.py']
+            self.run_args = [PYTHON_PATH, f'{self.file_name}.py']
         elif self.language == Language.CPLUSPLUS:
-            code_path = os.path.join(self.box_path, 'code.cpp')
-            exe_path = os.path.join(self.box_path, 'code')
+            code_path = os.path.join(self.box_path, f'{self.file_name}.cpp')
+            exe_path = os.path.join(self.box_path, self.file_name)
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
                 ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
@@ -76,3 +77,16 @@ class SourceCode:
             error = ''
         return_code = proc.returncode
         return output, error, return_code
+    
+    def cast_to_document(self):
+        return {
+            'code': self.code,
+            'language': self.language.name,
+        }
+    
+    @classmethod
+    def cast_from_document(cls, document):
+        return SourceCode(
+            code=document['code'],
+            language=Language[document['language']],
+        )

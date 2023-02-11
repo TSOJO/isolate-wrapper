@@ -95,6 +95,7 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
+        grader_source_code: SourceCode = None,
     ) -> Generator[Result, None, None]:
         """Judges code and returns verdict.
 
@@ -109,6 +110,8 @@ class IsolateSandbox:
 
         """
         logging.info('Judging code...')
+        if grader_source_code is not None:
+            grader_source_code.file_name = 'grader'
         for testcase in testcases:
             output, error, metadata, return_code = self.run_code(
                 source_code, testcase.input, time_limit, memory_limit
@@ -131,10 +134,26 @@ class IsolateSandbox:
                     # This following code should be unreachable.
                     raise Exception('Unexpected metadata status.')
             else:
-                if not self.check_output(output, testcase.answer):
-                    verdict = Verdict.WA
+                if grader_source_code is not None:
+                    # ? should grader use the same time limit / memory limit as the code?
+                    grader_input = testcase.input + '\n' + output
+                    grader_output, grader_error, _, grader_return_code = self.run_code(grader_source_code, grader_input, time_limit, memory_limit)
+                    if grader_return_code != 0:
+                        verdict = Verdict.SE
+                        logging.warn(f'Grader returned non-zero exit code with error: {grader_error}')
+                    else:
+                        if self.check_output(grader_output, 'AC'):
+                            verdict = Verdict.AC
+                        elif self.check_output(grader_output, 'WA'):
+                            verdict = Verdict.WA
+                        else:
+                            verdict = Verdict.SE
+                            logging.warn(f'Grader returned unexpected output: {grader_output}')
                 else:
-                    verdict = Verdict.AC
+                    if not self.check_output(output, testcase.answer):
+                        verdict = Verdict.WA
+                    else:
+                        verdict = Verdict.AC
 
             result = Result(
                 verdict=verdict,
@@ -147,58 +166,6 @@ class IsolateSandbox:
             yield result
         logging.info('Finished judging code.')
         self.cleanup()
-
-    def judge_with_grader(
-        self,
-        source_code: SourceCode,
-        testcases: List[Testcase],
-        time_limit: int,
-        memory_limit: int,
-        grader_code: SourceCode,
-    ) -> Generator[Result, None, None]:
-        for testcase in testcases:
-            output, error, metadata, return_code = self.run_code(
-                source_code, testcase.input, time_limit, memory_limit
-            )
-            message = ''
-            if return_code == COMPILATION_ERROR_RETURN_CODE:
-                verdict = Verdict.CE
-                message = error
-            elif return_code != 0:
-                if metadata['status'] in ('RE', 'SG'):
-                    verdict = Verdict.RE
-                    message = error
-                    if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
-                        verdict = Verdict.MLE
-                elif metadata['status'] == 'TO':
-                    verdict = Verdict.TLE
-                elif metadata['status'] == 'XX':
-                    verdict = Verdict.SE
-                else:
-                    # This following code should be unreachable.
-                    raise Exception('Unexpected metadata status.')
-            else:
-                # ? should grader use the same time limit / memory limit as the code?
-                grader_output, _, _, grader_return_code = self.run_code(grader_code, Testcase(output, ''), time_limit, memory_limit)
-                if grader_return_code != 0:
-                    verdict = Verdict.SE
-                else:
-                    if self.check_output(grader_output, 'AC'):
-                        verdict = Verdict.AC
-                    elif self.check_output(grader_output, 'WA'):
-                        verdict = Verdict.WA
-                    else:
-                        verdict = Verdict.SE
-
-            result = Result(
-                verdict=verdict,
-                time=int(float(metadata['time']) *
-                         1000) if 'time' in metadata else -1,
-                memory=int(metadata['max-rss']
-                           ) if 'max-rss' in metadata else -1,
-                message=message
-            )
-            yield result
 
     def generate_answer(
         self,
