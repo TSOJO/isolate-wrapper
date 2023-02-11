@@ -15,10 +15,10 @@ class AQAAssemblyInterpreter:
             mem_num = int(mem)
         except Exception:
             raise Exception(
-                f'Invalid memory address at line {self.cur_line_num}')
+                f'Invalid memory address at line {self.cur_line_num + 1}')
         if mem_num >= NUM_MEM:
             raise Exception(
-                f'Memory address out of range at line {self.cur_line_num}')
+                f'Memory address out of range at line {self.cur_line_num + 1}')
         return mem_num
 
     def set_memory(self, mem, val):
@@ -34,10 +34,10 @@ class AQAAssemblyInterpreter:
             reg_num = int(reg[1:])
         except Exception:
             raise Exception(
-                f'Invalid register number at line {self.cur_line_num}')
+                f'Invalid register number at line {self.cur_line_num + 1}')
         if reg_num >= NUM_REGISTERS:
             raise Exception(
-                f'Register number out of range at line {self.cur_line_num}')
+                f'Register number out of range at line {self.cur_line_num + 1}')
         return reg_num
 
     def set_register(self, reg, val):
@@ -55,7 +55,7 @@ class AQAAssemblyInterpreter:
             try:
                 res = int(operand[1:])
             except Exception:
-                raise Exception(f'Invalid operand at line {self.cur_line_num}')
+                raise Exception(f'Invalid operand at line {self.cur_line_num + 1}')
             return res
 
     def _ldr(self, reg, mem):
@@ -82,25 +82,25 @@ class AQAAssemblyInterpreter:
     def _eq(self):
         if self.cmp_left is None or self.cmp_right is None:
             raise Exception(
-                f'CMP not called before BEQ at line {self.cur_line_num}')
+                f'CMP not called before BEQ at line {self.cur_line_num + 1}')
         return self.cmp_left == self.cmp_right
 
     def _ne(self):
         if self.cmp_left is None or self.cmp_right is None:
             raise Exception(
-                f'CMP not called before BNE at line {self.cur_line_num}')
+                f'CMP not called before BNE at line {self.cur_line_num + 1}')
         return self.cmp_left != self.cmp_right
 
     def _gt(self):
         if self.cmp_left is None or self.cmp_right is None:
             raise Exception(
-                f'CMP not called before BGT at line {self.cur_line_num}')
+                f'CMP not called before BGT at line {self.cur_line_num + 1}')
         return self.cmp_left > self.cmp_right
 
     def _lt(self):
         if self.cmp_left is None or self.cmp_right is None:
             raise Exception(
-                f'CMP not called before BLT at line {self.cur_line_num}')
+                f'CMP not called before BLT at line {self.cur_line_num + 1}')
         return self.cmp_left < self.cmp_right
 
     def _and(self, reg, reg2, operand):
@@ -169,7 +169,7 @@ class AQAAssemblyInterpreter:
 
             if instruction not in instructions:
                 raise Exception(
-                    f'Unknown instruction at line {self.cur_line_num}')
+                    f'Unknown instruction at line {self.cur_line_num + 1}')
 
             if instruction == 'HALT':
                 return
@@ -181,7 +181,7 @@ class AQAAssemblyInterpreter:
                         (instruction == 'BLT' and self._lt()):
                     if args_raw not in branches:
                         raise Exception(
-                            f'Invalid branch at line {self.cur_line_num}')
+                            f'Invalid branch at line {self.cur_line_num + 1}')
                     self.cur_line_num = branches[args_raw]
                     continue
             else:
@@ -192,7 +192,7 @@ class AQAAssemblyInterpreter:
                     func(*args)
                 except Exception as e:
                     raise Exception(
-                        f'Error at line {self.cur_line_num}') from e
+                        f'Error at line {self.cur_line_num + 1}') from e
 
             self.cur_line_num += 1
 
