@@ -1,5 +1,5 @@
 import subprocess
-from .config import PYTHON_PATH, CPP_COMPILE_FLAGS
+from .config import PYTHON_PATH, CPP_COMPILE_FLAGS, AQAASM_PATH
 from .custom_types import Language
 import os
 
@@ -46,11 +46,25 @@ class SourceCode:
                 ['g++', *CPP_COMPILE_FLAGS.split(), '-o', exe_path, code_path],
                 check=False, capture_output=True
             )
-            self.run_args = ['./code']
+            self.run_args = [self.file_name]
             error = compile_proc.stderr.decode('utf-8')
             if error:
                 self.run_args = []
                 return error
+        elif self.language == Language.AQAASM:
+            code_path = os.path.join(self.box_path, f'{self.file_name}.aqaasm')
+            interpreter_path = os.path.join(self.box_path, 'aqaasm.py')
+            subprocess.run(['touch', code_path], check=False)
+            subprocess.run(
+                ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
+            )
+            subprocess.run(['touch', interpreter_path], check=False)
+            subprocess.run(
+                ['echo', open(AQAASM_PATH, 'r', encoding='utf-8').read()],
+                stdout=open(interpreter_path, 'w', encoding='utf-8'),
+                check=False
+            )
+            self.run_args = [PYTHON_PATH, 'aqaasm.py', f'{self.file_name}.aqaasm']
         return ''
 
     def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):
@@ -71,11 +85,14 @@ class SourceCode:
         )
         output = proc.stdout.decode('utf-8')
         error_raw = '\n'.join(proc.stderr.decode('utf-8').split('\n')[:-2])
-        if self.language.file_extension == 'py':
+        if self.language == Language.PYTHON:
             error = error_raw[error_raw.rfind('Traceback (most recent call last):'):]
+        elif self.language == Language.AQAASM:
+            error = error_raw
         else:
             error = ''
         return_code = proc.returncode
+        print(output, error_raw, return_code)
         return output, error, return_code
     
     def cast_to_document(self):
