@@ -79,7 +79,7 @@ class SourceCode:
             '-t', f'{time_limit}',
             '-w', f'{time_limit+1}',
             '-m', f'{memory_limit}',
-            '--run', *self.run_args,
+            '--run', '--', *self.run_args,
         ]
         proc = subprocess.run(
             args,
@@ -95,7 +95,7 @@ class SourceCode:
         elif self.language == Language.AQAASM:
             try:
                 line_num = int(error_raw.split()[-1])
-            except ValueError:
+            except:
                 error = error_raw
             else:
                 error = (
