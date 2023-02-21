@@ -133,8 +133,8 @@ class Language(Enum):
 		self.file_extension = file_extension
 		self.ui_name = ui_name
 	
-	CPLUSPLUS = ('cpp', 'C++')
 	PYTHON = ('py', 'Python')
+	CPLUSPLUS = ('cpp', 'C++')
 	AQAASM = ('aqaasm', 'AQA Assembly')
 
 	def cast_to_document(self) -> str:
