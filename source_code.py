@@ -64,8 +64,11 @@ class SourceCode:
                 stdout=open(interpreter_path, 'w', encoding='utf-8'),
                 check=False
             )
+            # ! Hardcoded for now
             self.run_args = [PYTHON_PATH, 'aqaasm.py',
-                             f'{self.file_name}.aqaasm']
+                             f'{self.file_name}.aqaasm', 
+                             '-i', '101',
+                             '-o', '102',]
         return ''
 
     def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):
