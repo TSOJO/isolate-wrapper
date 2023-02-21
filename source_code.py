@@ -5,7 +5,7 @@ import os
 
 
 class SourceCode:
-    def __init__(self, code: str, language: Language, box_path: str=None) -> None:
+    def __init__(self, code: str, language: Language, box_path: str = None) -> None:
         self.code = code
         self.language = language
         self.run_args = None
@@ -64,7 +64,8 @@ class SourceCode:
                 stdout=open(interpreter_path, 'w', encoding='utf-8'),
                 check=False
             )
-            self.run_args = [PYTHON_PATH, 'aqaasm.py', f'{self.file_name}.aqaasm']
+            self.run_args = [PYTHON_PATH, 'aqaasm.py',
+                             f'{self.file_name}.aqaasm']
         return ''
 
     def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):
@@ -86,21 +87,30 @@ class SourceCode:
         output = proc.stdout.decode('utf-8')
         error_raw = '\n'.join(proc.stderr.decode('utf-8').split('\n')[:-2])
         if self.language == Language.PYTHON:
-            error = error_raw[error_raw.rfind('Traceback (most recent call last):'):]
+            error = error_raw[error_raw.rfind(
+                'Traceback (most recent call last):'):]
         elif self.language == Language.AQAASM:
-            error = error_raw
+            try:
+                line_num = int(error_raw.split()[-1])
+            except ValueError:
+                error = error_raw
+            else:
+                error = (
+                    f'{error_raw[(error_raw.rfind("Exception: ")+11):]}\n'
+                    f'  Line {line_num}:\n'
+                    f'    {self.code.splitlines()[line_num-1]}'
+                )
         else:
             error = ''
         return_code = proc.returncode
-        print(output, error_raw, return_code)
         return output, error, return_code
-    
+
     def cast_to_document(self):
         return {
             'code': self.code,
             'language': self.language.name,
         }
-    
+
     @classmethod
     def cast_from_document(cls, document):
         return SourceCode(
