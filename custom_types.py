@@ -135,7 +135,7 @@ class Language(Enum):
 	
 	CPLUSPLUS = ('cpp', 'C++')
 	PYTHON = ('py', 'Python')
-	AQAASM = ('aqaasm', 'AQA Assembly Language')
+	AQAASM = ('aqaasm', 'AQA Assembly')
 
 	def cast_to_document(self) -> str:
 		return self.name
