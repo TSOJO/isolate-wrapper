@@ -1,14 +1,23 @@
 import subprocess
+import os
+from typing import Optional, List
+
 from .config import PYTHON_PATH, CPP_COMPILE_FLAGS, AQAASM_PATH
 from .custom_types import Language
-import os
 
 
 class SourceCode:
-    def __init__(self, code: str, language: Language, box_path: str = None) -> None:
+    def __init__(self,
+                 code: str,
+                 language: Language,
+                 box_path: Optional[str] = None,
+                 aqaasm_inputs: Optional[List[str]] = None,
+                 aqaasm_outputs: Optional[List[str]] = None) -> None:
         self.code = code
         self.language = language
         self.run_args = None
+        self.aqaasm_inputs = [] if aqaasm_inputs is None else aqaasm_inputs
+        self.aqaasm_outputs = [] if aqaasm_outputs is None else aqaasm_outputs
 
         self._box_path = box_path
         self.file_name = 'code'
@@ -64,11 +73,10 @@ class SourceCode:
                 stdout=open(interpreter_path, 'w', encoding='utf-8'),
                 check=False
             )
-            # ! Hardcoded for now
             self.run_args = [PYTHON_PATH, 'aqaasm.py',
-                             f'{self.file_name}.aqaasm', 
-                             '-i', '101',
-                             '-o', '102',]
+                             f'{self.file_name}.aqaasm',
+                             '-i', *self.aqaasm_inputs,
+                             '-o', *self.aqaasm_outputs]
         return ''
 
     def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):

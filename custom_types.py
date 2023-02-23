@@ -21,7 +21,7 @@ class Testcase:
 	batch_number: int = 1
 	
 	@classmethod
-	def cast_from_document(cls, document: str) -> Language:
+	def cast_from_document(cls, document: str) -> Testcase:
 		return Testcase(
 			input=document['input'],
 			answer=document['answer'],
