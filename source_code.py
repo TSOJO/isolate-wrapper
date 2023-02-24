@@ -98,8 +98,8 @@ class SourceCode:
         output = proc.stdout.decode('utf-8')
         error_raw = '\n'.join(proc.stderr.decode('utf-8').split('\n')[:-2])
         if self.language == Language.PYTHON:
-            error = error_raw[error_raw.rfind(
-                'Traceback (most recent call last):'):]
+            error_start = error_raw.find('Traceback (most recent call last):')
+            error = error_raw[error_start:] if error_start != -1 else error_raw
         elif self.language == Language.AQAASM:
             try:
                 line_num = int(error_raw.split()[-1])

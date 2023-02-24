@@ -167,7 +167,7 @@ class IsolateSandbox:
         logging.info('Finished judging code.')
         self.cleanup()
 
-    def generate_answer(
+    def get_output(
         self,
         source_code: SourceCode,
         input: str,
