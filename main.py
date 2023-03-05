@@ -121,18 +121,8 @@ class IsolateSandbox:
                 verdict = Verdict.CE
                 message = error
             elif return_code != 0:
-                if metadata['status'] in ('RE', 'SG'):
-                    verdict = Verdict.RE
-                    message = error
-                    if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
-                        verdict = Verdict.MLE
-                elif metadata['status'] == 'TO':
-                    verdict = Verdict.TLE
-                elif metadata['status'] == 'XX':
-                    verdict = Verdict.SE
-                else:
-                    # This following code should be unreachable.
-                    raise Exception('Unexpected metadata status.')
+                verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
+                message = error
             else:
                 if grader_source_code is not None:
                     # ? should grader use the same time limit / memory limit as the code?
@@ -167,38 +157,28 @@ class IsolateSandbox:
         logging.info('Finished judging code.')
         self.cleanup()
 
-    def get_output(
+    def get_outputs(
         self,
         source_code: SourceCode,
-        input: str,
+        inputs: str,
         time_limit: int,
         memory_limit: int,
     ) -> Tuple[str, Verdict]:
-        message = ''
-        output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit) 
-        answer = ''
-        if return_code == COMPILATION_ERROR_RETURN_CODE:
-            verdict = Verdict.CE
-            message = error
-        elif return_code != 0:
-            if metadata['status'] in ('RE', 'SG'):
-                verdict = Verdict.RE
-                if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
-                    verdict = Verdict.MLE
+        for input in inputs:
+            output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit)
+            message = ''
+            if return_code == COMPILATION_ERROR_RETURN_CODE:
+                verdict = Verdict.CE
                 message = error
-            elif metadata['status'] == 'TO':
-                verdict = Verdict.TLE
-            elif metadata['status'] == 'XX':
-                verdict = Verdict.SE
+            elif return_code != 0:
+                verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
+                message = error
             else:
-                raise Exception('Unexpected metadata status.')
-        else:
-            answer = output
-            verdict = Verdict.AC
-
+                verdict = Verdict.AC
+            yield (output, verdict, message)
         logging.info('Finished generating output.')
         self.cleanup()
-        return (answer, verdict, message)
+        return (output, verdict, message)
 
     def run_code(
         self,
@@ -296,3 +276,27 @@ class IsolateSandbox:
         if Verdict.MLE in verdicts:
             return Verdict.MLE
         return Verdict.AC
+
+    @staticmethod
+    def decide_RE_verdict(metadata: Dict[str, str], memory_limit: int) -> Verdict:
+        """Decide verdict based on metadata and memory limit.
+
+        Args:
+            metadata (Dict[str, str]): Metadata.
+            memory_limit (int): Memory limit.
+
+        Returns:
+            Verdict: Verdict.
+        
+        """
+        if metadata['status'] == 'XX':
+            return Verdict.SE
+        if metadata['status'] == 'TO':
+            return Verdict.TLE
+        if metadata['status'] in ('RE', 'SG'):
+            if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
+                return Verdict.MLE
+            return Verdict.RE
+        if metadata['status'] == 'OK':
+            return Verdict.AC
+        raise Exception('Unexpected metadata status.')
