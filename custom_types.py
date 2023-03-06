@@ -53,11 +53,11 @@ class Verdict(Enum):
 	WJ = 'Waiting for Judge'
 
 	@classmethod
-	def cast_from_document(cls, document: Any):
-		return Verdict[document['verdict']]
+	def cast_from_document(cls, document: Any) -> Verdict:
+		return Verdict[document]
 
-	def cast_to_document(self) -> Dict[str, Any]:
-		return {'verdict': self.name, 'verdict_long': self.value}
+	def cast_to_document(self) -> str:
+		return self.name
 
 	def is_ac(self) -> bool:
 		"""Returns if object is AC
