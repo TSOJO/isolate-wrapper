@@ -112,50 +112,54 @@ class IsolateSandbox:
         logging.info('Judging code...')
         if grader_source_code is not None:
             grader_source_code.file_name = 'grader'
-        for testcase in testcases:
-            output, error, metadata, return_code = self.run_code(
-                source_code, testcase.input, time_limit, memory_limit
-            )
-            message = ''
-            if return_code == COMPILATION_ERROR_RETURN_CODE:
-                verdict = Verdict.CE
-                message = error
-            elif return_code != 0:
-                verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
-                message = error
-            else:
-                if grader_source_code is not None:
-                    # ? should grader use the same time limit / memory limit as the code?
-                    grader_input = testcase.input + '\n' + output
-                    grader_output, grader_error, _, grader_return_code = self.run_code(grader_source_code, grader_input, time_limit, memory_limit)
-                    if grader_return_code != 0:
-                        verdict = Verdict.SE
-                        logging.warn(f'Grader returned non-zero exit code with error: {grader_error}')
+        
+        try:
+            for testcase in testcases:
+                output, error, metadata, return_code = self.run_code(
+                    source_code, testcase.input, time_limit, memory_limit
+                )
+                message = ''
+                if return_code == COMPILATION_ERROR_RETURN_CODE:
+                    verdict = Verdict.CE
+                    message = error
+                elif return_code != 0:
+                    verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
+                    message = error
+                else:
+                    if grader_source_code is not None:
+                        # ? should grader use the same time limit / memory limit as the code?
+                        grader_input = testcase.input + '\n' + output
+                        grader_output, grader_error, _, grader_return_code = self.run_code(grader_source_code, grader_input, time_limit, memory_limit)
+                        if grader_return_code != 0:
+                            verdict = Verdict.SE
+                            logging.warn(f'Grader returned non-zero exit code with error: {grader_error}')
+                        else:
+                            if self.check_output(grader_output, 'AC'):
+                                verdict = Verdict.AC
+                            elif self.check_output(grader_output, 'WA'):
+                                verdict = Verdict.WA
+                            else:
+                                verdict = Verdict.SE
+                                logging.warn(f'Grader returned unexpected output: {grader_output}')
                     else:
-                        if self.check_output(grader_output, 'AC'):
-                            verdict = Verdict.AC
-                        elif self.check_output(grader_output, 'WA'):
+                        if not self.check_output(output, testcase.answer):
                             verdict = Verdict.WA
                         else:
-                            verdict = Verdict.SE
-                            logging.warn(f'Grader returned unexpected output: {grader_output}')
-                else:
-                    if not self.check_output(output, testcase.answer):
-                        verdict = Verdict.WA
-                    else:
-                        verdict = Verdict.AC
+                            verdict = Verdict.AC
 
-            result = Result(
-                verdict=verdict,
-                time=int(float(metadata['time']) *
-                         1000) if 'time' in metadata else -1,
-                memory=int(metadata['max-rss']
-                           ) if 'max-rss' in metadata else -1,
-                message=message
-            )
-            yield result
-        logging.info('Finished judging code.')
-        self.cleanup()
+                result = Result(
+                    verdict=verdict,
+                    time=int(float(metadata['time']) *
+                            1000) if 'time' in metadata else -1,
+                    memory=int(metadata['max-rss']
+                            ) if 'max-rss' in metadata else -1,
+                    message=message
+                )
+                yield result
+        finally:
+            # By using `finally`, this code is executed even when the calling loop uses `break`.
+            logging.info('Finished judging code.')
+            self.cleanup()
 
     def get_outputs(
         self,
@@ -164,21 +168,25 @@ class IsolateSandbox:
         time_limit: int,
         memory_limit: int,
     ) -> Tuple[str, Verdict]:
-        for input in inputs:
-            output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit)
-            message = ''
-            if return_code == COMPILATION_ERROR_RETURN_CODE:
-                verdict = Verdict.CE
-                message = error
-            elif return_code != 0:
-                verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
-                message = error
-            else:
-                verdict = Verdict.AC
-            yield (output, verdict, message)
-        logging.info('Finished generating output.')
-        self.cleanup()
-        return (output, verdict, message)
+        logging.info('Generating outputs...')
+        
+        try:
+            for input in inputs:
+                output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit)
+                message = ''
+                if return_code == COMPILATION_ERROR_RETURN_CODE:
+                    verdict = Verdict.CE
+                    message = error
+                elif return_code != 0:
+                    verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
+                    message = error
+                else:
+                    verdict = Verdict.AC
+                yield (output, verdict, message)
+        finally:
+            # By using `finally`, this code is executed even when the calling loop uses `break`.
+            logging.info('Finished generating outputs.')
+            self.cleanup()
 
     def run_code(
         self,
