@@ -167,7 +167,7 @@ class IsolateSandbox:
         inputs: str,
         time_limit: int,
         memory_limit: int,
-    ) -> Tuple[str, Verdict]:
+    ) -> Generator[Tuple[str, Result], None, None]:
         logging.info('Generating outputs...')
         
         try:
@@ -182,7 +182,13 @@ class IsolateSandbox:
                     message = error
                 else:
                     verdict = Verdict.AC
-                yield (output, verdict, message)
+                result = Result(verdict=verdict,
+                                time=int(float(metadata['time']) *
+                                        1000) if 'time' in metadata else -1,
+                                memory=int(metadata['max-rss']
+                                        ) if 'max-rss' in metadata else -1,
+                                message=message)
+                yield (output, result)
         finally:
             # By using `finally`, this code is executed even when the calling loop uses `break`.
             logging.info('Finished generating outputs.')
