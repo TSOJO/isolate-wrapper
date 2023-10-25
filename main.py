@@ -164,7 +164,7 @@ class IsolateSandbox:
     def get_outputs(
         self,
         source_code: SourceCode,
-        inputs: str,
+        inputs: List[str],
         time_limit: int,
         memory_limit: int,
     ) -> Generator[Tuple[str, Result], None, None]:
