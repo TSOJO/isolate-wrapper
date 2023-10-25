@@ -106,10 +106,11 @@ class SourceCode:
             except:
                 error = error_raw
             else:
+                newl = '\n'
                 error = (
                     f'{error_raw[(error_raw.rfind("Exception: ")+11):]}\n'
                     f'  Line {line_num}:\n'
-                    f'    {self.code.splitlines(keepends=True)[line_num-1]}'
+                    f'    {self.code.split(newl)[line_num-1]}'
                 )
         else:
             error = ''
