@@ -1,7 +1,7 @@
 import subprocess
 import logging
 import os
-from typing import List, Tuple, Dict, Generator
+from typing import List, Tuple, Dict, Generator, Optional
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
 from .constants import COMPILATION_ERROR_RETURN_CODE
@@ -95,18 +95,19 @@ class IsolateSandbox:
         testcases: List[Testcase],
         time_limit: int,
         memory_limit: int,
-        grader_source_code: SourceCode = None,
+        grader_source_code: Optional[SourceCode] = None,
     ) -> Generator[Result, None, None]:
         """Judges code and returns verdict.
 
         Args:
-            code (str): Source code.
+            source_code (SourceCode): The SourceCode object that stores the source code.
             testcases (List[Testcase]): Testcase objects.
             time_limit (int): Time limit in milliseconds.
             memory_limit (int): Memory limit in KB.
+            grader_source_code (Optional[SourceCode]): Optional argument that gives the SourceCode object of the grader if used.
 
         Returns:
-            tuple[Verdict, List[Result]]: Tuple of final verdict and results.
+            Generator[Result, None, None]: Generator of all Result objects.
 
         """
         logging.info('Judging code...')
@@ -168,6 +169,17 @@ class IsolateSandbox:
         time_limit: int,
         memory_limit: int,
     ) -> Generator[Tuple[str, Result], None, None]:
+        """Gets the outputs of a code given inputs.
+
+        Args:
+            source_code (SourceCode): SourceCode object that stores the source code.
+            inputs (List[str]): List of inputs.
+            time_limit (int): The time limit.
+            memory_limit (int): The memory limit.
+
+        Yields:
+            Generator[Tuple[str, Result], None, None]: A Generator of tuples of the output and the Result. The Verdict AC means code ran successfully without errors.
+        """
         logging.info('Generating outputs...')
         
         try:
@@ -201,24 +213,29 @@ class IsolateSandbox:
         time_limit: int,
         memory_limit: int,
     ) -> Tuple[str, str, Dict[str, str], int]:
-        """
-        Run the code and return the output, error, metadata, and return code.
+        """Runs the code and return the output, error, metadata, and return code.
+
+        Args:
+            source_code (SourceCode): SoureCode object that stores the source code.
+            input (str): The input.
+            time_limit (int): The time limit.
+            memory_limit (int): The memory limit.
+
+        Returns:
+            Tuple[str, str, Dict[str, str], int]: A tuple of (the output, error message, metadata Dict, return code).
         """
         metadata_path = os.path.join(METADATA_FOLDER, f'{self.box_id}.txt')
 
         source_code.box_path = self.box_path
-        compile_message = source_code.compile_if_needed()
+        compile_message = source_code.prepare_if_needed()
         if compile_message:
             logging.info('Compilation failed.')
             return ('', compile_message, {}, COMPILATION_ERROR_RETURN_CODE)
 
-        # Convert milliseconds to seconds.
-        time_limit_sec = time_limit / 1000
-
         output, error, return_code = source_code.run(
             box_id=self.box_id,
             metadata_path=metadata_path,
-            time_limit=time_limit_sec,
+            time_limit=time_limit,
             memory_limit=memory_limit,
             input=input,
         )
@@ -228,13 +245,13 @@ class IsolateSandbox:
         return (output, error, metadata, return_code)
 
     def read_metadata(self, metadata_path: str) -> Dict[str, str]:
-        """Reads metadata file and return dictionary of metadata.
+        """Reads metadata file and returns a dictionary of metadata.
 
         Args:
             metadata_path (str): Path to metadata file.
 
         Returns:
-            dict[str, str]: Metadata.
+            dict[str, str]: Metadata dictionary.
 
         """
         metadata = {}
@@ -275,25 +292,23 @@ class IsolateSandbox:
             Verdict: Overall verdict.
 
         """
-        if Verdict.WJ in verdicts:
-            return Verdict.WJ
-        if Verdict.SE in verdicts:
-            return Verdict.SE
-        if Verdict.CE in verdicts:
-            return Verdict.CE
-        if Verdict.WA in verdicts:
-            return Verdict.WA
-        if Verdict.RE in verdicts:
-            return Verdict.RE
-        if Verdict.TLE in verdicts:
-            return Verdict.TLE
-        if Verdict.MLE in verdicts:
-            return Verdict.MLE
+        verdict_importance_order = [
+            Verdict.WJ,
+            Verdict.SE,
+            Verdict.CE,
+            Verdict.WA,
+            Verdict.RE,
+            Verdict.TLE,
+            Verdict.MLE,
+        ]
+        for verdict in verdict_importance_order:
+            if verdict in verdicts:
+                return verdict
         return Verdict.AC
 
     @staticmethod
     def decide_RE_verdict(metadata: Dict[str, str], memory_limit: int) -> Verdict:
-        """Decide verdict based on metadata and memory limit.
+        """Decide verdict based on metadata and memory limit if the return code is non-zero.
 
         Args:
             metadata (Dict[str, str]): Metadata.
@@ -311,6 +326,6 @@ class IsolateSandbox:
             if 'max-rss' in metadata and float(metadata['max-rss']) > memory_limit * 0.8:
                 return Verdict.MLE
             return Verdict.RE
-        if metadata['status'] == 'OK':
+        if metadata['status'] == 'OK': # This should not happen, since status would not be 'OK' if the return code is non-zero.
             return Verdict.AC
         raise Exception('Unexpected metadata status.')

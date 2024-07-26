@@ -38,9 +38,12 @@ class Testcase:
 
 class Verdict(Enum):
 	"""Verdict type.
-
-	Will be one of AC/WA/TLE/MLE/RE/CE/SE
-
+	
+	Methods:
+		cast_from_document: A class method to return a Verdict from a string.
+		cast_to_document: Returns the string of this Verdict. str() can also (and is more preferred to) be used.
+		is_ac: Returns true if this verdict is AC.
+		is_wj: Returns true if this verdict is WJ.
 	"""
 
 	AC = 'Accepted'
@@ -60,11 +63,6 @@ class Verdict(Enum):
 		return self.name
 
 	def is_ac(self) -> bool:
-		"""Returns if object is AC
-
-		Returns:
-			bool: Whether or not object is AC
-		"""
 		return self is Verdict.AC
 
 	def is_wj(self) -> bool:
@@ -85,7 +83,6 @@ class Result:
 		verdict (Verdict): Verdict of result.
 		time (int): Execution time in milliseconds.
 		memory (int): Memory used in KB.
-
 	"""
 
 	verdict: Verdict
@@ -123,6 +120,13 @@ class Result:
 	
 
 class Language(Enum):
+	"""An enumeration with attributes to represent a language.
+
+	Attributes:
+		file_extension (str): The file extension (without the first fullstop).
+		ui_name (str): The name of the language that should be shown in user interfaces.
+	"""
+
 	# https://stackoverflow.com/questions/12680080/python-enums-with-attributes
 	def __new__(cls, *args, **kwds):
 		value = len(cls.__members__) + 1

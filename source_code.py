@@ -1,18 +1,29 @@
 import subprocess
 import os
-from typing import Optional, List
+from typing import Optional, List, Tuple
 
 from .config import PYTHON_PATH, CPP_COMPILE_FLAGS, AQAASM_PATH
 from .custom_types import Language
 
 
 class SourceCode:
+    """SourceCode object for storing, compiling, and running source code.
+    """
     def __init__(self,
                  code: str,
                  language: Language,
                  box_path: Optional[str] = None,
                  aqaasm_inputs: Optional[List[str]] = None,
                  aqaasm_outputs: Optional[List[str]] = None) -> None:
+        """Initialises a SourceCode object.
+
+        Args:
+            code (str): The raw code.
+            language (Language): The Language,
+            box_path (Optional[str], optional): Path to its sandbox. Defaults to None.
+            aqaasm_inputs (Optional[List[str]], optional): Memory address locations for the inputs for when Language is AQAASM. Defaults to None.
+            aqaasm_outputs (Optional[List[str]], optional): Memory address locations for the outputs for when Language is AQAASM. Defaults to None.
+        """
         self.code = code
         self.language = language
         self.run_args = None
@@ -32,12 +43,21 @@ class SourceCode:
     def box_path(self, value):
         self._box_path = value
 
-    def compile_if_needed(self):
-        if self.run_args is not None:
-            if self.run_args == []:
+    def prepare_if_needed(self) -> str:
+        """Prepares the source code before running, if not already prepared.
+
+        Returns:
+            str: The error message is compilation failed; Otherwise an empty string is returned.
+        """
+
+        if self.run_args is not None: # This means the source code is already prepared in the box.
+            if self.run_args == []: # This means compilation has failed (for compiled languages only) in the first testcase.
+                # Directly return the following error message.
                 return 'See error details in the first testcase.'
+            # Otherwise, do nothing.
             return ''
         if self.language == Language.PYTHON:
+            # Create code file inside the box.
             code_path = os.path.join(self.box_path, f'{self.file_name}.py')
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
@@ -45,12 +65,14 @@ class SourceCode:
             )
             self.run_args = [PYTHON_PATH, f'{self.file_name}.py']
         elif self.language == Language.CPLUSPLUS:
+            # Create code file inside the box.
             code_path = os.path.join(self.box_path, f'{self.file_name}.cpp')
             exe_path = os.path.join(self.box_path, self.file_name)
             subprocess.run(['touch', code_path], check=False)
             subprocess.run(
                 ['echo', self.code], stdout=open(code_path, 'w', encoding='utf-8'), check=False
             )
+            # Compile the code using g++ inside the box.
             compile_proc = subprocess.run(
                 ['g++', *CPP_COMPILE_FLAGS.split(), '-o', exe_path, code_path],
                 check=False, capture_output=True
@@ -61,6 +83,7 @@ class SourceCode:
                 self.run_args = []
                 return error
         elif self.language == Language.AQAASM:
+            # Create code and interpreter files inside the box.
             code_path = os.path.join(self.box_path, f'{self.file_name}.aqaasm')
             interpreter_path = os.path.join(self.box_path, 'aqaasm.py')
             subprocess.run(['touch', code_path], check=False)
@@ -79,7 +102,20 @@ class SourceCode:
                              '-o', *self.aqaasm_outputs]
         return ''
 
-    def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str):
+    def run(self, box_id: int, metadata_path: str, time_limit: int, memory_limit: int, input: str) -> Tuple[str, str, int]:
+        """Runs the source code.
+
+        Args:
+            box_id (int): The box id to use.
+            metadata_path (str): The path to metadata.
+            time_limit (int): The time limit.
+            memory_limit (int): The memory limit.
+            input (str): The input.
+
+        Returns:
+            Tuple[str, str, int]: A tuple of (the output, error message, return code)
+        """
+        time_limit //= 1000 # Convert milliseconds to seconds.
         args = [
             'isolate',
             '--box-id', f'{box_id}',

@@ -7,8 +7,10 @@ if environ.get('DEV') == '1':
 else:
     PYTHON_PATH = environ.get('PYTHON_PATH')
 
+# Path to AQA Assembly Interpreter.
 AQAASM_PATH = 'AQA_Assembly_Interpreter/aqaasm.py'
 
+# Compilation flags for C++.
 CPP_COMPILE_FLAGS = '-static -std=c++2a -s -O2'
 
 # Maximum number of concurrent sandboxes.
