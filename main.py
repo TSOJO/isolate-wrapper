@@ -261,7 +261,8 @@ class IsolateSandbox:
                 metadata[key] = value.strip()
         return metadata
 
-    def check_output(self, output: str, answer: str) -> bool:
+    @staticmethod
+    def check_output(output: str, answer: str) -> bool:
         """Compare `output` and `answer`, and return whether `output` is correct.
 
         Args:
