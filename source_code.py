@@ -14,7 +14,8 @@ class SourceCode:
                  language: Language,
                  box_path: Optional[str] = None,
                  aqaasm_inputs: Optional[List[str]] = None,
-                 aqaasm_outputs: Optional[List[str]] = None) -> None:
+                 aqaasm_outputs: Optional[List[str]] = None,
+                 python_ignore_prompts: bool = False) -> None:
         """Initialises a SourceCode object.
 
         Args:
@@ -29,6 +30,7 @@ class SourceCode:
         self.run_args = None
         self.aqaasm_inputs = [] if aqaasm_inputs is None else aqaasm_inputs
         self.aqaasm_outputs = [] if aqaasm_outputs is None else aqaasm_outputs
+        self.python_ignore_prompts = python_ignore_prompts
 
         self._box_path = box_path
         self.file_name = 'code'
@@ -57,6 +59,8 @@ class SourceCode:
             # Otherwise, do nothing.
             return ''
         if self.language == Language.PYTHON:
+            if self.python_ignore_prompts:
+                self.code = 'TOPYC_INPUT = input; input = lambda _=0: TOPYC_INPUT(); ' + self.code
             # Create code file inside the box.
             code_path = os.path.join(self.box_path, f'{self.file_name}.py')
             subprocess.run(['touch', code_path], check=False)

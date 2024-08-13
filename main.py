@@ -195,10 +195,8 @@ class IsolateSandbox:
                 else:
                     verdict = Verdict.AC
                 result = Result(verdict=verdict,
-                                time=int(float(metadata['time']) *
-                                        1000) if 'time' in metadata else -1,
-                                memory=int(metadata['max-rss']
-                                        ) if 'max-rss' in metadata else -1,
+                                time=int(float(metadata['time']) * 1000) if 'time' in metadata else -1,
+                                memory=int(metadata['max-rss']) if 'max-rss' in metadata else -1,
                                 message=message)
                 yield (output, result)
         finally:
