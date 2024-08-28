@@ -54,6 +54,7 @@ class Verdict(Enum):
 	CE = 'Compilation Error'
 	SE = 'System Error'
 	WJ = 'Waiting for Judge'
+	NOF = 'No Output File'
 
 	@classmethod
 	def cast_from_document(cls, document: Any) -> Verdict:

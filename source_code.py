@@ -60,7 +60,7 @@ class SourceCode:
             return ''
         if self.language == Language.PYTHON:
             if self.python_ignore_prompts:
-                self.code = 'TOPYC_INPUT = input; input = lambda _=0: TOPYC_INPUT(); ' + self.code
+                self.code = 'TOPYC_INPUT = input; input = lambda _=0: TOPYC_INPUT()\n' + self.code
             # Create code file inside the box.
             code_path = os.path.join(self.box_path, f'{self.file_name}.py')
             subprocess.run(['touch', code_path], check=False)

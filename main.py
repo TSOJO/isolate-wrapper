@@ -4,7 +4,7 @@ import os
 from typing import List, Tuple, Dict, Generator, Optional
 
 from .config import PYTHON_PATH, MAX_BOX, METADATA_FOLDER
-from .constants import COMPILATION_ERROR_RETURN_CODE
+from .constants import COMPILATION_ERROR_RETURN_CODE, NO_OUTPUT_FILE_RETURN_CODE
 from .custom_types import Verdict, Result, Testcase
 from .source_code import SourceCode
 
@@ -96,6 +96,8 @@ class IsolateSandbox:
         time_limit: int,
         memory_limit: int,
         grader_source_code: Optional[SourceCode] = None,
+        file_in: Optional[str] = None,
+        file_out: Optional[str] = None
     ) -> Generator[Result, None, None]:
         """Judges code and returns verdict.
 
@@ -105,6 +107,8 @@ class IsolateSandbox:
             time_limit (int): Time limit in milliseconds.
             memory_limit (int): Memory limit in KB.
             grader_source_code (Optional[SourceCode]): Optional argument that gives the SourceCode object of the grader if used.
+            file_in (Optional[str]): The file to write the input to.
+            file_out (Optional[str]): The file to read the output from.
 
         Returns:
             Generator[Result, None, None]: Generator of all Result objects.
@@ -117,12 +121,15 @@ class IsolateSandbox:
         try:
             for testcase in testcases:
                 output, error, metadata, return_code = self.run_code(
-                    source_code, testcase.input, time_limit, memory_limit
+                    source_code, testcase.input, time_limit, memory_limit,
+                    file_in=file_in, file_out=file_out
                 )
                 message = ''
                 if return_code == COMPILATION_ERROR_RETURN_CODE:
                     verdict = Verdict.CE
                     message = error
+                elif return_code == NO_OUTPUT_FILE_RETURN_CODE:
+                    verdict = Verdict.NOF
                 elif return_code != 0:
                     verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
                     message = error
@@ -168,6 +175,8 @@ class IsolateSandbox:
         inputs: List[str],
         time_limit: int,
         memory_limit: int,
+        file_in: Optional[str] = None,
+        file_out: Optional[str] = None
     ) -> Generator[Tuple[str, Result], None, None]:
         """Gets the outputs of a code given inputs.
 
@@ -176,6 +185,8 @@ class IsolateSandbox:
             inputs (List[str]): List of inputs.
             time_limit (int): The time limit.
             memory_limit (int): The memory limit.
+            file_in (Optional[str]): The file to write the input to.
+            file_out (Optional[str]): The file to read the output from.
 
         Yields:
             Generator[Tuple[str, Result], None, None]: A Generator of tuples of the output and the Result. The Verdict AC means code ran successfully without errors.
@@ -184,11 +195,13 @@ class IsolateSandbox:
         
         try:
             for input in inputs:
-                output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit)
+                output, error, metadata, return_code = self.run_code(source_code, input, time_limit, memory_limit, file_in=file_in, file_out=file_out)
                 message = ''
                 if return_code == COMPILATION_ERROR_RETURN_CODE:
                     verdict = Verdict.CE
                     message = error
+                elif return_code == NO_OUTPUT_FILE_RETURN_CODE:
+                    verdict = Verdict.NOF
                 elif return_code != 0:
                     verdict = IsolateSandbox.decide_RE_verdict(metadata, memory_limit)
                     message = error
@@ -210,6 +223,8 @@ class IsolateSandbox:
         input: str,
         time_limit: int,
         memory_limit: int,
+        file_in: Optional[str] = None,
+        file_out: Optional[str] = None
     ) -> Tuple[str, str, Dict[str, str], int]:
         """Runs the code and return the output, error, metadata, and return code.
 
@@ -218,6 +233,8 @@ class IsolateSandbox:
             input (str): The input.
             time_limit (int): The time limit.
             memory_limit (int): The memory limit.
+            file_in (Optional[str]): The file to write the input to.
+            file_out (Optional[str]): The file to read the output from.
 
         Returns:
             Tuple[str, str, Dict[str, str], int]: A tuple of (the output, error message, metadata Dict, return code).
@@ -229,6 +246,11 @@ class IsolateSandbox:
         if compile_message:
             logging.info('Compilation failed.')
             return ('', compile_message, {}, COMPILATION_ERROR_RETURN_CODE)
+        
+        if file_in is not None:
+            with open(os.path.join(self.box_path, file_in), 'w', encoding='utf-8') as f:
+                f.write(input)
+            input = ''
 
         output, error, return_code = source_code.run(
             box_id=self.box_id,
@@ -237,6 +259,15 @@ class IsolateSandbox:
             memory_limit=memory_limit,
             input=input,
         )
+
+        if file_out is not None:
+            try:
+                with open(os.path.join(self.box_path, file_out), 'r', encoding='utf-8') as f:
+                    output = f.read()
+            except FileNotFoundError:
+                logging.error(f'User code does not produce output file: {file_out}')
+                return ('', '', {}, NO_OUTPUT_FILE_RETURN_CODE)
+
         if error:
             logging.info(f'User code gave error: {error}')
         metadata = self.read_metadata(metadata_path)
@@ -295,6 +326,7 @@ class IsolateSandbox:
             Verdict.WJ,
             Verdict.SE,
             Verdict.CE,
+            Verdict.NOF,
             Verdict.WA,
             Verdict.RE,
             Verdict.TLE,
