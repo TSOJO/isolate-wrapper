@@ -1,11 +1,8 @@
 """Store configuration for wrapper."""
-from os import environ
+import shutil
 
-# Path to Python.
-if environ.get('DEV') == '1':
-    PYTHON_PATH = '/usr/bin/python3'
-else:
-    PYTHON_PATH = environ.get('PYTHON_PATH')
+# Path to Python, resolved from PATH.
+PYTHON_PATH = shutil.which('python3') or shutil.which('python') or 'python3'
 
 # Path to AQA Assembly Interpreter.
 AQAASM_PATH = 'AQA_Assembly_Interpreter/aqaasm.py'
